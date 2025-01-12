@@ -2,6 +2,8 @@ FROM datawookie/undetected-chromedriver:latest
 
 ENV CHROME_VERSION=131.0.6778.264
 ENV CHROMEDRIVER_VERSION=131.0.6778.264
+ENV SCREEN_WIDTH=1920
+ENV SCREEN_HEIGHT=1080
 
 RUN wget https://storage.googleapis.com/chrome-for-testing-public/${CHROME_VERSION}/linux64/chrome-linux64.zip \
             && wget https://storage.googleapis.com/chrome-for-testing-public/${CHROMEDRIVER_VERSION}/linux64/chromedriver-linux64.zip
@@ -21,5 +23,7 @@ RUN poetry config virtualenvs.create false \
 
 COPY . .
 
-ENTRYPOINT ["python", "-u", "-B" "-m"]
+RUN rm /tmp/.X0-lock
+
+ENTRYPOINT ["python", "-u", "-B", "-m"]
 CMD ["meetsaver.gmeet-bot"]
