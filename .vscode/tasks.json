@@ -1,0 +1,22 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "docker compose up",
+      "type": "shell",
+      "command": "docker compose -f docker-compose.yml -f docker-compose.local.yml up --build -d && sleep 2",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Запуск контейнера Docker"
+    },
+    {
+      "label": "docker compose down",
+      "type": "shell",
+      "command": "docker compose down && docker system prune -f",
+      "group": "build",
+      "problemMatcher": [],
+      "detail": "Остановка контейнера Docker",
+      "isBackground": true
+    }
+  ]
+}
