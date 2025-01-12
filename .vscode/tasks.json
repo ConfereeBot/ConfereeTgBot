@@ -12,7 +12,7 @@
     {
       "label": "docker compose down",
       "type": "shell",
-      "command": "docker compose down && docker system prune -f",
+      "command": "docker compose down && docker image prune -f",
       "group": "build",
       "problemMatcher": [],
       "detail": "Остановка контейнера Docker",
