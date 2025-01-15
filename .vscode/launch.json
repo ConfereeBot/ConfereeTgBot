@@ -7,6 +7,7 @@
       "request": "attach",
       "preLaunchTask": "docker compose up",  // Запуск контейнера до отладки
       "postDebugTask": "docker compose down",  // Остановка контейнера после завершения отладки
+      "justMyCode": true,
       "connect": {
         "host": "localhost",
         "port": 5678

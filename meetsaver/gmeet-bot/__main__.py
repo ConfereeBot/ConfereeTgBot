@@ -7,5 +7,5 @@ logger = utils.logger.setup_logger(__name__)
 
 if __name__ == "__main__":
     logger.info("Starting gmeet recorder...")
-    asyncio.run(record_meet("https://meet.google.com/wsc-ywte-njv"))
+    asyncio.run(record_meet("https://meet.google.com/umz-hzvs-dqu"))
     logger.info("Finished gmeet recording.")

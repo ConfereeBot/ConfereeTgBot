@@ -1,5 +1,8 @@
+import asyncio
+import pickle
+import subprocess
 from asyncio import sleep
-from os import getenv
+from os import getenv, path
 
 import undetected_chromedriver as uc
 from selenium.webdriver.common.by import By
@@ -24,6 +27,7 @@ async def setup_driver() -> uc.Chrome:
     options.add_argument("--no-first-run")
     options.add_argument("--start-maximized")
     options.add_argument("--disable-infobars")
+    options.add_argument("--disable-features=IdentityConsistency")
 
     return uc.Chrome(use_subprocess=False, options=options)
 
@@ -45,10 +49,58 @@ async def google_sign_in(driver: uc.Chrome):
     logger.info("Completed signing in google account.")
 
 
-async def record_meet(meet_link: str):
-    logger.info(f"Recoring for link: {meet_link}")
+async def first_open(meet_link: str):
     driver = await setup_driver()
     await google_sign_in(driver)
 
     driver.get(meet_link)
+    await sleep(5)
+    with open("cookies.pkl", "wb") as cookies_file:
+        pickle.dump(driver.get_cookies(), cookies_file)
     driver.quit()
+
+
+async def record_meet(meet_link: str):
+    logger.info(f"Recoring for link: {meet_link}")
+
+    if not path.exists("cookies.pkl"):
+        await first_open()
+    driver = await setup_driver()
+    driver.get(meet_link)
+    await sleep(5)
+    with open("cookies.pkl", "rb") as cookies_file:
+        cookies = pickle.load(cookies_file)
+        for cookie in cookies:
+            driver.add_cookie(cookie)
+    driver.refresh()
+    await sleep(5)
+    driver.find_element(
+        By.XPATH,
+        '//*[@id="yDmH0d"]/c-wiz/div/div/div[36]/div[4]/div/div[2]/div[4]/\
+div[1]/div/div[2]/div[1]/div[2]/div[1]/div/div/div/button/span[6]',
+    ).click()
+    await sleep(5)
+    logger.info("Start recording...")
+    await run_cmd(
+        "ffmpeg -y -framerate 30 \
+-f x11grab -i :0 -f virtual_sink.monitor -i virtual_sink.monitor -t 10 output.mp4"
+    )
+    logger.info("Stoped recording.")
+    driver.find_element(
+        By.XPATH,
+        '//*[@id="yDmH0d"]/c-wiz/div/div/div[34]/div[4]/\
+div[10]/div/div/div[2]/div/div[8]/span/button/div',
+    ).click()
+    await sleep(2)
+    driver.quit()
+
+
+async def run_cmd(command):
+    process = await asyncio.create_subprocess_shell(
+        command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+    )
+    # Wait for the process to complete
+    stdout, stderr = await process.communicate()
+    logger.debug(stderr)
+
+    return stdout, stderr
