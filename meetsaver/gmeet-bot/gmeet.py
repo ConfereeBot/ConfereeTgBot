@@ -76,14 +76,19 @@ async def record_meet(meet_link: str):
     await sleep(5)
     driver.find_element(
         By.XPATH,
-        '//*[@id="yDmH0d"]/c-wiz/div/div/div[36]/div[4]/div/div[2]/div[4]/\
-div[1]/div/div[2]/div[1]/div[2]/div[1]/div/div/div/button/span[6]',
+        '//*[@id="yDmH0d"]/c-wiz/div/div/div[37]/div[4]/div/div[2]/\
+div[4]/div/div/div[2]/div[1]/div[2]/div[1]/div/div/button/span[6]',
     ).click()
     await sleep(5)
     logger.info("Start recording...")
     await run_cmd(
+        "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit \
+&& pactl load-module module-null-sink sink_name=virtual_sound"
+    )
+    await run_cmd(
         "ffmpeg -y -framerate 30 \
--f x11grab -i :0 -f virtual_sink.monitor -i virtual_sink.monitor -t 10 output.mp4"
+-f x11grab -i :0 -f pulse -i virtual_sound.monitor -t 10 \
+-analyzeduration 1000000 -buffer_size 2048 output.mp4"
     )
     logger.info("Stoped recording.")
     driver.find_element(

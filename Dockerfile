@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y \
     jq \
     ffmpeg \
     pulseaudio \
+    pulseaudio-utils \
     && rm -rf /var/lib/apt/lists/*
 
 RUN wget $( \
@@ -15,7 +16,8 @@ RUN wget $( \
     )
 RUN unzip -qq -o chrome-linux64.zip -d /var/local/ && rm chrome-linux64.zip
 
-WORKDIR /app
+RUN useradd -m app
+WORKDIR /home/app
 
 RUN python -m pip install --no-cache-dir poetry==1.8.3 debugpy
 
@@ -28,8 +30,8 @@ RUN poetry config virtualenvs.create false \
 COPY . .
 
 RUN rm /tmp/.X0-lock
-
-RUN pulseaudio --start --exit-idle-time=-1 --daemonize=1 --load="module-null-sink sink_name=virtual_sink"
+RUN chmod -R 777 .
+# USER app
 
 ENTRYPOINT ["python", "-Xfrozen_modules=off", "-u", "-B", "-m"]
 CMD ["meetsaver.gmeet-bot"]
