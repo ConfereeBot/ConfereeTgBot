@@ -16,8 +16,7 @@ RUN wget $( \
     )
 RUN unzip -qq -o chrome-linux64.zip -d /var/local/ && rm chrome-linux64.zip
 
-RUN useradd -m app
-WORKDIR /home/app
+WORKDIR /app
 
 RUN python -m pip install --no-cache-dir poetry==1.8.3 debugpy
 
@@ -30,8 +29,6 @@ RUN poetry config virtualenvs.create false \
 COPY . .
 
 RUN rm /tmp/.X0-lock
-RUN chmod -R 777 .
-# USER app
 
 ENTRYPOINT ["python", "-Xfrozen_modules=off", "-u", "-B", "-m"]
-CMD ["meetsaver.gmeet-bot"]
+CMD ["meetsaver"]
