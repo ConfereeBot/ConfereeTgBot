@@ -1,6 +1,5 @@
 import asyncio
 from asyncio import subprocess
-from datetime import timedelta
 from os import getenv
 from time import time
 
@@ -23,7 +22,10 @@ CMD_FFMPEG = f"ffmpeg -y -loglevel warning -framerate 30 \
 CMD_PULSE = "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit --log-level=debug \
     && pactl load-module module-null-sink sink_name=virtual_sink \
     && pactl set-default-sink virtual_sink"
-TIMEOUT = 5
+TIMEOUT = int(getenv("TIMEOUT"))
+MIN_PEOPLE = int(getenv("MIN_PEOPLE"))
+UPDATE_TIME = int(getenv("UPDATE_TIME"))
+AWAIT_TIME = int(getenv("AWAIT_TIME"))
 
 
 class GMeet:
@@ -93,10 +95,10 @@ class GMeet:
         self.__is_pulse_ready = True
 
     @property
-    def recording_time(self) -> None | str:
+    def recording_time(self) -> None | int:
         if not self.__start_time:
             return None
-        return str(timedelta(seconds=time() - self.__start_time)).split(".")[0]
+        return int(time() - self.__start_time)
 
     async def get_screenshot(self) -> None | str:
         logger.info("Getting screenshot...")
@@ -108,7 +110,13 @@ class GMeet:
         logger.info("Start recording...")
         self.__start_time = time()
         ffmpeg = await self.__run_cmd(CMD_FFMPEG, True)
-        await asyncio.sleep(10)
+        left_people = 0
+        while self.recording_time < AWAIT_TIME or left_people >= MIN_PEOPLE:
+            await asyncio.sleep(UPDATE_TIME)
+            element = await self.__meet_page.query_selector("div.uGOf1d")
+            left_people = int(element.text) - 1
+            logger.debug(left_people)
+
         logger.info("Stoped recording.")
         self.__start_time = 0
         return ffmpeg
