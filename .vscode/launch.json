@@ -2,11 +2,11 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Python: Attach to Docker",
+      "name": "docker_gmeet_bot",
       "type": "debugpy",
       "request": "attach",
-      "preLaunchTask": "docker compose up",  // Запуск контейнера до отладки
-      "postDebugTask": "docker compose down",  // Остановка контейнера после завершения отладки
+      "preLaunchTask": "docker compose up gmeet_bot",  // Запуск контейнера до отладки
+      "postDebugTask": "docker compose down gmeet_bot",  // Остановка контейнера после завершения отладки
       "justMyCode": true,
       "connect": {
         "host": "localhost",
@@ -18,6 +18,38 @@
           "remoteRoot": "."
         }
       ]
+    },
+    {
+      "name": "docker_meetsaver",
+      "type": "debugpy",
+      "request": "attach",
+      "preLaunchTask": "docker compose up meetsaver",  // Запуск контейнера до отладки
+      "postDebugTask": "docker compose down meetsaver",  // Остановка контейнера после завершения отладки
+      "justMyCode": true,
+      "connect": {
+        "host": "localhost",
+        "port": 5678
+      },
+      "pathMappings": [
+        {
+          "localRoot": "${workspaceFolder}",
+          "remoteRoot": "."
+        }
+      ]
+    },
+    {
+      "name": "gmeet_bot",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "meetsaver.gmeet_bot",
+      "envFile": "${workspaceFolder}/.env"
+    },
+    {
+      "name": "meetsaver",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "meetsaver",
+      "envFile": "${workspaceFolder}/.env"
     }
   ]
 }

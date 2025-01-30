@@ -1,8 +1,5 @@
 FROM datawookie/undetected-chromedriver:latest
 
-ENV SCREEN_WIDTH=1920
-ENV SCREEN_HEIGHT=1080
-
 RUN apt-get update && apt-get install -y \
     jq \
     ffmpeg \
