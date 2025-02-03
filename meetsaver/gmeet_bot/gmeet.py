@@ -18,7 +18,8 @@ def SCREENSHOT() -> str:
 
 
 CMD_FFMPEG = f"ffmpeg -y -loglevel warning -framerate 30 \
-    -f x11grab -i :0 -f pulse -i virtual_sink.monitor -ac 2 -b:a 192k {VIDEO}"
+    -f x11grab -i :0 -f pulse -i virtual_sink.monitor \
+    -ac 2 -c:v libx264 -preset veryfast -crf 23 {VIDEO}"
 CMD_PULSE = "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit --log-level=debug \
     && pactl load-module module-null-sink sink_name=virtual_sink \
     && pactl set-default-sink virtual_sink"
@@ -158,7 +159,7 @@ class GMeet:
             ffmpeg.stdin.write(b"q")
             logger.debug("FFmpeg terminated. Waiting...")
             await ffmpeg.stdin.drain()
-            stdout, stderr = await asyncio.wait_for(ffmpeg.communicate(), timeout=TIMEOUT)
+            stdout, stderr = await ffmpeg.communicate()
             logger.debug(stderr)
             return VIDEO
         except asyncio.TimeoutError:
