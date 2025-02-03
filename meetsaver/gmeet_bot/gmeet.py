@@ -26,6 +26,7 @@ TIMEOUT = int(getenv("TIMEOUT"))
 MIN_PEOPLE = int(getenv("MIN_PEOPLE"))
 UPDATE_TIME = int(getenv("UPDATE_TIME"))
 AWAIT_TIME = int(getenv("AWAIT_TIME"))
+ATTEMPTS_RECOVERY = int(getenv("ATTEMPTS_RECOVERY"))
 
 
 class GMeet:
@@ -111,14 +112,20 @@ class GMeet:
         self.__start_time = time()
         ffmpeg = await self.__run_cmd(CMD_FFMPEG, True)
         left_people = 0
+        attempts = 0
         while self.recording_time < AWAIT_TIME or left_people >= MIN_PEOPLE:
             await asyncio.sleep(UPDATE_TIME)
             try:
                 element = await self.__meet_page.query_selector("div.uGOf1d")
                 left_people = int(element.text) - 1
+                attempts = 0
             except Exception:
                 logger.warning("Can't get left people counter")
                 left_people = MIN_PEOPLE
+                attempts += 1
+                if attempts == ATTEMPTS_RECOVERY:
+                    logger.error("Something went wrong. Impossible to parse page!")
+                    break
 
         logger.info("Stoped recording.")
         self.__start_time = 0
