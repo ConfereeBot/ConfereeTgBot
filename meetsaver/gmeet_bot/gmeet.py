@@ -17,9 +17,12 @@ def SCREENSHOT() -> str:
     return f"screenshot_{int(time())}.png"
 
 
-CMD_FFMPEG = f"ffmpeg -y -loglevel warning -framerate 30 \
-    -f x11grab -i :0 -f pulse -i virtual_sink.monitor \
-    -ac 2 -c:v libx264 -preset veryfast -crf 23 {VIDEO}"
+SCREEN_WIDTH = getenv("SCREEN_WIDTH")
+SCREEN_HEIGHT = getenv("SCREEN_HEIGHT")
+
+CMD_FFMPEG = f"ffmpeg -y -loglevel info -f x11grab -i :0.0 \
+    -f pulse -i default -channels 2 -vsync 1 -async -1 {VIDEO}"
+
 CMD_PULSE = "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit --log-level=debug \
     && pactl load-module module-null-sink sink_name=virtual_sink \
     && pactl set-default-sink virtual_sink"
@@ -49,7 +52,7 @@ class GMeet:
     async def __setup_browser(self):
         self.__browser = await uc.start(
             browser_args=[
-                f"--window-size={getenv("SCREEN_WIDTH")},{getenv("SCREEN_HEIGHT")}",
+                f"--window-size={SCREEN_WIDTH},{SCREEN_HEIGHT}",
                 "--incognito",
             ]
         )
