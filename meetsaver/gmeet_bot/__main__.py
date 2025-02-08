@@ -7,7 +7,7 @@ logger = utils.logger.setup_logger(__name__)
 
 
 async def main():
-    link = await GMeet().record_meet("https://meet.google.com/kfj-nwqs-ixv")
+    link = await GMeet().record_meet("https://meet.google.com/vua-utey-jow")
     logger.info(link)
 
 

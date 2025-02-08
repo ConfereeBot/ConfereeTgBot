@@ -20,8 +20,16 @@ def SCREENSHOT() -> str:
 SCREEN_WIDTH = getenv("SCREEN_WIDTH")
 SCREEN_HEIGHT = getenv("SCREEN_HEIGHT")
 
-CMD_FFMPEG = f"ffmpeg -y -loglevel info -f x11grab -i :0.0 \
-    -f pulse -i default -channels 2 -vsync 1 -async -1 {VIDEO}"
+CMD_FFMPEG = 'ffmpeg -y -loglevel info -f x11grab -r 25 -i :0.0 \
+    -f pulse -i default -channels 2 \
+    -c:v libx264 -pix_fmt yuv420p -c:a aac \
+    -vsync 1 -af aresample=async=-1 \
+    -f segment -segment_time 600 -reset_timestamps 1 \
+    -force_key_frames "expr:gte(t,n_forced*600)" -segment_format mp4 output/output_%03d.mp4'
+
+CMD_CONCAT = f"ls output/*.mp4 | sed \"s|^output/|file '|;s|$|'|\" > output/list.txt \
+    && ffmpeg -y -f concat -i output/list.txt -c copy {VIDEO} \
+    && rm output/*"
 
 CMD_PULSE = "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit --log-level=debug \
     && pactl load-module module-null-sink sink_name=virtual_sink \
@@ -150,6 +158,7 @@ class GMeet:
         await next_btn.mouse_click()
         await self.__browser.wait(5)
 
+        # await asyncio.sleep(31 * 60)
         ffmpeg = await self.__run_recording()
 
         exit_btn = await self.__meet_page.find_element_by_text("leave call")
@@ -157,12 +166,15 @@ class GMeet:
         await self.__browser.wait(2)
         self.__browser.stop()
         self.__meet_page = None
-
+        # return
         try:
             ffmpeg.stdin.write(b"q")
             logger.debug("FFmpeg terminated. Waiting...")
             await ffmpeg.stdin.drain()
             stdout, stderr = await ffmpeg.communicate()
+            logger.debug(stderr)
+            logger.debug("Start concatination...")
+            stdout, stderr = await asyncio.wait_for(self.__run_cmd(CMD_CONCAT), timeout=TIMEOUT)
             logger.debug(stderr)
             return VIDEO
         except asyncio.TimeoutError:

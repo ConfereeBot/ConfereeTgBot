@@ -171,6 +171,5 @@ cython_debug/
 .pypirc
 
 logs/
-*.pkl
+output/
 *.mp4
-*.dat
