@@ -1,6 +1,6 @@
 import asyncio
-from asyncio import subprocess
-from os import getenv
+from asyncio import StreamReader, subprocess
+from os import getenv, remove, scandir
 from time import time
 
 import nodriver as uc
@@ -23,13 +23,12 @@ SCREEN_HEIGHT = getenv("SCREEN_HEIGHT")
 CMD_FFMPEG = 'ffmpeg -y -loglevel info -f x11grab -r 25 -i :0.0 \
     -f pulse -i default -channels 2 \
     -c:v libx264 -pix_fmt yuv420p -c:a aac \
-    -vsync 1 -af aresample=async=-1 \
+    -vsync -1 -af aresample=async=-1 \
     -f segment -segment_time 600 -reset_timestamps 1 \
     -force_key_frames "expr:gte(t,n_forced*600)" -segment_format mp4 output/output_%03d.mp4'
 
 CMD_CONCAT = f"ls output/*.mp4 | sed \"s|^output/|file '|;s|$|'|\" > output/list.txt \
-    && ffmpeg -y -f concat -i output/list.txt -c copy {VIDEO} \
-    && rm output/*"
+    && ffmpeg -y -f concat -i output/list.txt -c copy {VIDEO}"
 
 CMD_PULSE = "pulseaudio -D --system=false --exit-idle-time=-1 --disallow-exit --log-level=debug \
     && pactl load-module module-null-sink sink_name=virtual_sink \
@@ -86,12 +85,19 @@ class GMeet:
         process = await asyncio.create_subprocess_shell(
             command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, stdin=asyncio.subprocess.PIPE
         )
+
+        async def read_stream(stream: StreamReader):
+            while chunk := await stream.read(4096):
+                logger.debug(chunk.decode())
+
+        stdout_task = asyncio.create_task(read_stream(process.stdout))
+        stderr_task = asyncio.create_task(read_stream(process.stderr))
+
         if on_background:
             logger.info(f"Cmd started with PID: {process.pid}")
-            return process
+            return process, stdout_task, stderr_task
         # Wait for the process to complete
-        stdout, stderr = await process.communicate()
-        return stdout, stderr
+        await asyncio.gather(stdout_task, stderr_task, process.wait())
 
     @property
     def is_running(self):
@@ -100,8 +106,7 @@ class GMeet:
     async def __run_pulse(self):
         logger.info("Running pulse...")
         try:
-            stdout, stderr = await asyncio.wait_for(self.__run_cmd(CMD_PULSE), timeout=TIMEOUT)
-            logger.debug(stderr)
+            await asyncio.wait_for(self.__run_cmd(CMD_PULSE), timeout=TIMEOUT)
         except asyncio.TimeoutError:
             logger.error("Can't run cmd. Exiting it...")
             raise ex.ModuleException("pulse")
@@ -168,18 +173,19 @@ class GMeet:
         self.__meet_page = None
         # return
         try:
-            ffmpeg.stdin.write(b"q")
-            logger.debug("FFmpeg terminated. Waiting...")
-            await ffmpeg.stdin.drain()
-            stdout, stderr = await ffmpeg.communicate()
-            logger.debug(stderr)
-            logger.debug("Start concatination...")
-            stdout, stderr = await asyncio.wait_for(self.__run_cmd(CMD_CONCAT), timeout=TIMEOUT)
-            logger.debug(stderr)
+            ffmpeg[0].stdin.write(b"q")
+            logger.info("FFmpeg terminated. Waiting...")
+            await ffmpeg[0].stdin.drain()
+            await asyncio.gather(ffmpeg[0].wait(), ffmpeg[1], ffmpeg[2])
+            logger.info("Start concatination...")
+            await asyncio.wait_for(self.__run_cmd(CMD_CONCAT), timeout=TIMEOUT)
             return VIDEO
         except asyncio.TimeoutError:
-            logger.error("Can't terminate ffmpeg. Killing it...")
-            ffmpeg.kill()
+            logger.error("Can't conact videos. Raise error.")
             raise ex.ModuleException("ffmpeg")
         finally:
+            with scandir("output") as it:
+                for entry in it:
+                    if entry.is_file():
+                        remove(entry)
             self.__browser = None
