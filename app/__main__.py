@@ -5,7 +5,6 @@ from tomllib import load
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 
-from app.config.roles import Role
 from app.middlewares.logging import LoggingMiddleware
 from app.roles import admin, owner, user
 from app.utils import setup_logger
