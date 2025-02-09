@@ -175,5 +175,3 @@ ConfereeBot/.idea/
 .pypirc
 
 logs/
-output/
-*.mp4

@@ -1,5 +1,13 @@
 services:
   bot:
-    image: meetsaver:latest
+    container_name: conferee_tg_bot
     build:
       context: .
+    env_file:
+      - ~/config/.env
+    volumes:
+      - ~/logs:/app/logs
+    restart: unless-stopped
+    labels:
+      - group=confereebot
+      - dev.dozzle.name=tgbot

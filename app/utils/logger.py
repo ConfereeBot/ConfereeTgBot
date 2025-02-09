@@ -4,7 +4,7 @@ from logging.handlers import RotatingFileHandler
 
 log_dir = "./logs"
 os.makedirs(log_dir, exist_ok=True)
-log_filepath = os.path.join(log_dir, "meetsaver.log")
+log_filepath = os.path.join(log_dir, "conferee_tg_bot.log")
 
 
 def setup_logger(logger_name):
