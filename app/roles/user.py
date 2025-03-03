@@ -7,15 +7,16 @@ from aiogram.types import FSInputFile, Message
 from app.config import messages as msg
 from app.config.roles import Role
 from app.filters import RoleFilter
-from app.utils import setup_logger
-
 from app.keyboards import (
-    main as main_keyboard,
     choose_recordings_search_method_keyboard as recordings_keyboard,
+)
+from app.keyboards import (
+    inline_admin_list,
     inline_tag_list_for_edit,
     inline_tag_list_for_recording,
-    inline_admin_list,
 )
+from app.keyboards import main as main_keyboard
+from app.utils import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -29,7 +30,7 @@ async def cmd_start(message: Message):
     await message.answer_photo(
         photo=FSInputFile(os.path.join(os.getcwd(), "app", "config", "images", "logo.webp")),
         caption=msg.START.format(name=message.from_user.first_name),
-        reply_markup=main_keyboard
+        reply_markup=main_keyboard,
     )
 
 
@@ -38,31 +39,32 @@ async def get_recording(message: Message):
     logger.info("get_recordings_call")
     await message.answer(
         text="Как вы хотите найти запись: по тегу или по ссылке?",
-        reply_markup=recordings_keyboard
+        reply_markup=recordings_keyboard,
     )
 
 
 @user.message(F.text == "🗂️ Управление тегами")
-async def get_recording(message: Message):
+async def manage_tags(message: Message):
     logger.info("manage_tags_call")
     await message.answer(
         text="Выберите тег или создайте новый",
-        reply_markup=await inline_tag_list_for_edit()
+        reply_markup=await inline_tag_list_for_edit(),
     )
 
 
 @user.message(F.text == "🎥 Записать")
-async def get_recording(message: Message):
+async def start_recording(message: Message):
     logger.info("manage_tags_call")
     await message.answer(
         text="Выберите тег или создайте новый",
-        reply_markup=await inline_tag_list_for_recording()
+        reply_markup=await inline_tag_list_for_recording(),
     )
 
+
 @user.message(F.text == "👨🏻‍💻 Управление админами")
-async def get_recording(message: Message):
+async def manage_admins(message: Message):
     logger.info("manage_admins_call")
     await message.answer(
         text="Выберите админа или создайте новый",
-        reply_markup=await inline_admin_list()
+        reply_markup=await inline_admin_list(),
     )
