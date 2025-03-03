@@ -175,3 +175,7 @@ ConfereeBot/.idea/
 .pypirc
 
 logs/
+
+.vscode/
+.idea/
+poetry.lock
