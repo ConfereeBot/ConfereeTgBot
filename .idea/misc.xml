@@ -1,65 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
-  <component name="ProjectInspectionProfilesVisibleTreeState">
-    <entry key="Project Default">
-      <profile-state>
-        <expanded-state>
-          <State>
-            <id>CodeSpring CoreSpring</id>
-          </State>
-          <State>
-            <id>GeneralJavaScript and TypeScript</id>
-          </State>
-          <State>
-            <id>Groovy</id>
-          </State>
-          <State>
-            <id>JVM languages</id>
-          </State>
-          <State>
-            <id>Java</id>
-          </State>
-          <State>
-            <id>JavaScript and TypeScript</id>
-          </State>
-          <State>
-            <id>Micronaut</id>
-          </State>
-          <State>
-            <id>Numeric issuesJava</id>
-          </State>
-          <State>
-            <id>Spring</id>
-          </State>
-          <State>
-            <id>Spring CoreSpring</id>
-          </State>
-          <State>
-            <id>Spring IntegrationSpring</id>
-          </State>
-          <State>
-            <id>Threading issuesGroovy</id>
-          </State>
-          <State>
-            <id>Threading issuesJava</id>
-          </State>
-        </expanded-state>
-        <selected-state>
-          <State>
-            <id>User defined</id>
-          </State>
-        </selected-state>
-      </profile-state>
-    </entry>
+  <component name="Black">
+    <option name="sdkName" value="Poetry (ConfereeTgBot)" />
   </component>
-  <component name="ProjectRootManager" version="2" project-jdk-name="Python 3.13" project-jdk-type="Python SDK" />
-  <component name="TaskManager">
-    <task active="true" id="Default" summary="Default task">
-      <created>1719489582163</created>
-      <option name="number" value="Default" />
-      <option name="presentableId" value="Default" />
-      <updated>1719489582163</updated>
-    </task>
-    <servers />
-  </component>
+  <component name="ProjectRootManager" version="2" project-jdk-name="Poetry (ConfereeTgBot)" project-jdk-type="Python SDK" />
 </project>
