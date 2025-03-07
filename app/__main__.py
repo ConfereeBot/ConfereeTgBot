@@ -5,6 +5,7 @@ from tomllib import load
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 
+from app.database.database import db
 from app.middlewares.logging import LoggingMiddleware
 from app.roles import admin, owner, user
 from app.utils import setup_logger
@@ -24,7 +25,8 @@ async def main():
     )
 
     logger.info("Старт бота")
-    await dp.start_polling(bot)
+    await db.ping()  # check db connectivity
+    await dp.start_polling(bot)  # start bot
 
 
 def get_version():
