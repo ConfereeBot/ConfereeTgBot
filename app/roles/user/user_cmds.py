@@ -8,7 +8,7 @@ from app.config import messages as msg
 from app.config.roles import Role
 from app.filters import RoleFilter
 from app.keyboards import (
-    main as main_keyboard,
+    main_actions_keyboard as main_keyboard,
 )
 from app.utils import setup_logger
 

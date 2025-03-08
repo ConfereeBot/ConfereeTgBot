@@ -5,8 +5,9 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.database.database import db
+from app.roles.user.callbacks_enum import Callbacks
 
-main = ReplyKeyboardMarkup(keyboard=[
+main_actions_keyboard = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="📥 Получить запись"), KeyboardButton(text="🎥 Записать")],
     [KeyboardButton(text="🗂️ Управление тегами"), KeyboardButton(text="👨🏻‍💻 Управление админами")],
 ],
@@ -48,6 +49,21 @@ async def inline_tag_list(
     return tags_list_keyboard.adjust(1).as_markup()
 
 
+async def inline_single_cancel_button(
+        on_cancel_button_clicked_callback: str
+) -> InlineKeyboardMarkup:
+    cancel_tag_enter_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(
+                text="❌ Отмена",
+                callback_data=on_cancel_button_clicked_callback
+            )]
+        ]
+    )
+
+    return cancel_tag_enter_keyboard
+
+
 admin_list = ["@yuriy_magus", "@semyonq"]
 
 
@@ -55,8 +71,8 @@ async def inline_admin_list() -> InlineKeyboardMarkup:
     admin_list_keyboard = InlineKeyboardBuilder()
     for admin in admin_list:
         admin_list_keyboard.add(InlineKeyboardButton(text=admin, url="https://google.com"))
-    admin_list_keyboard.add(InlineKeyboardButton(text="╋ Добавить админа", url="https://300.ya.ru"))
-    admin_list_keyboard.add(InlineKeyboardButton(text="❌ Отмена", callback_data="on_cancel_primary_callback"))
+    admin_list_keyboard.add(InlineKeyboardButton(text="➕ Добавить админа", url="https://300.ya.ru"))
+    admin_list_keyboard.add(InlineKeyboardButton(text="❌ Отмена", callback_data=Callbacks.cancel_primary_action_callback))
     return admin_list_keyboard.adjust(1).as_markup()
 
 manage_tag_inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -64,7 +80,7 @@ manage_tag_inline_keyboard = InlineKeyboardMarkup(inline_keyboard=[
         InlineKeyboardButton(text="✏️ Редактировать", callback_data="on_tag_edit_callback"),
         InlineKeyboardButton(text="🗑️ Удалить", callback_data="on_tag_delete_callback")
     ],
-    [InlineKeyboardButton(text="❌ Отмена", callback_data="on_cancel_tag_action_callback")]
+    [InlineKeyboardButton(text="❌ Отмена", callback_data=Callbacks.cancel_tag_manage_callback)]
     ],
     resize_keyboard=True,
     input_field_placeholder="Выберите действие"
