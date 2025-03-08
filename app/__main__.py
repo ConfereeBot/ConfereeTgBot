@@ -7,17 +7,22 @@ from aiogram.client.default import DefaultBotProperties
 
 from app.database.database import db
 from app.middlewares.logging import LoggingMiddleware
-from app.roles import admin, owner, user
 from app.utils import setup_logger
+from app.roles.admin.admin import admin
+from app.roles.user.user_cmds import user
+from app.roles.owner.owner import owner
 
 logger = setup_logger(__name__)
 
 
 async def main():
     dp = Dispatcher()
-    dp.include_routers(admin, owner, user)
+    dp.include_routers(user, admin, owner)
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(LoggingMiddleware())
+
+    logger.info(f"User router message handlers: {user.message.handlers}")
+    logger.info(f"User router callback handlers: {user.callback_query.handlers}")
 
     bot = Bot(
         token=os.getenv("TOKEN_BOT"),
@@ -26,6 +31,7 @@ async def main():
 
     logger.info("Старт бота")
     await db.ping()  # check db connectivity
+    await db.setup_indexes()  # setup db indexes
     await dp.start_polling(bot)  # start bot
 
 

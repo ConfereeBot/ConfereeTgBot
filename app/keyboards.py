@@ -4,6 +4,8 @@ from aiogram.types import (
 )
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
+from app.database.database import db
+
 main = ReplyKeyboardMarkup(keyboard=[
     [KeyboardButton(text="📥 Получить запись"), KeyboardButton(text="🎥 Записать")],
     [KeyboardButton(text="🗂️ Управление тегами"), KeyboardButton(text="👨🏻‍💻 Управление админами")],
@@ -20,17 +22,31 @@ choose_recordings_search_method_keyboard = InlineKeyboardMarkup(inline_keyboard=
     input_field_placeholder="Выберите способ поиска записи"
 )
 
-tag_list = ["Управление данными", "Архитектура ПК и ОС", "Правовая грамотность", "Python", "Java", "C++",
-            "Компьютерные сети"]
 
+async def inline_tag_list(
+        on_item_clicked_callback: str,
+        on_cancel_clicked_callback: str,
+        on_item_create_clicked_callback: str = None
+) -> InlineKeyboardMarkup:
+    tags = await db.get_all_tags()
 
-async def inline_tag_list(on_item_clicked_callback: str, on_item_add_clicked_callback: str, on_cancel_clicked_callback: str) -> InlineKeyboardMarkup:
     tags_list_keyboard = InlineKeyboardBuilder()
-    for tag in tag_list:
-        tags_list_keyboard.add(InlineKeyboardButton(text=tag, callback_data=on_item_clicked_callback))
-    tags_list_keyboard.add(InlineKeyboardButton(text="➕ Создать тег", callback_data=on_item_add_clicked_callback))
-    tags_list_keyboard.add(InlineKeyboardButton(text="❌ Отмена", callback_data=on_cancel_clicked_callback))
+    for tag in tags:
+        tags_list_keyboard.add(InlineKeyboardButton(
+            text=tag.name,
+            callback_data=on_item_clicked_callback
+        ))
+    if on_item_create_clicked_callback is not None:
+        tags_list_keyboard.add(InlineKeyboardButton(
+            text="➕ Создать тег",
+            callback_data=on_item_create_clicked_callback
+        ))
+    tags_list_keyboard.add(InlineKeyboardButton(
+        text="❌ Отмена",
+        callback_data=on_cancel_clicked_callback
+    ))
     return tags_list_keyboard.adjust(1).as_markup()
+
 
 admin_list = ["@yuriy_magus", "@semyonq"]
 
