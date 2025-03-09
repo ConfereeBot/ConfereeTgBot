@@ -12,3 +12,5 @@ RUN python -m pip install --no-cache-dir poetry==1.8.3 \
 COPY . .
 
 ENTRYPOINT ["python3", "-u", "-B", "-m", "app"]
+
+CMD ["poetry", "run", "python", "-m", "app"]
