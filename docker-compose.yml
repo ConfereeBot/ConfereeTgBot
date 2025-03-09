@@ -3,11 +3,29 @@ services:
     container_name: conferee_tg_bot
     build:
       context: .
+    depends_on:
+      - mongodb
+    environment:
+      - MONGODB_URI=mongodb://mongodb:27017
     env_file:
-      - ~/config/.env
+      - ./.env
     volumes:
       - ~/logs:/app/logs
     restart: unless-stopped
     labels:
       - group=confereebot
       - dev.dozzle.name=tgbot
+
+  mongodb:
+    container_name: conferee_mongodb
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    restart: unless-stopped
+    labels:
+      - group=confereebot
+
+volumes:
+  mongodb_data:

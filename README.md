@@ -7,5 +7,4 @@ Tg bot for managing GMeetBot service
 3. `git clone https://github.com/ConfereeBot/ConfereeTgBot.git`
 4. `poetry install`
 5. `pre-commit install`
-6. Choose appropriate configuration in "Run and Debug"
-7. Run debug (`f5` in vs code)
+6. `docker-compose up --build`
