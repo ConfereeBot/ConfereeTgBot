@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "confereebot"
-version = "0.3.1"
+version = "0.4.0"
 description = "Tg bot for managing GMeetBot service"
 authors = [
     "Shon Qwezon <shonzbso@gmail.com>",
