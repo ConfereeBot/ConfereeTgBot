@@ -35,7 +35,7 @@ async def on_cancel_tag_select_for_recording_callback(callback: CallbackQuery):
     await callback.message.edit_text(
         text="Выберите тег или создайте новый",
         reply_markup=await inline_tag_list(
-            on_item_clicked_callback="on_tag_clicked_in_tags_management_mode_callback",
+            on_item_clicked_callback=Callbacks.tag_clicked_in_recording_mode_callback,
             on_item_create_clicked_callback="on_tag_add_clicked_in_tags_management_mode_callback",
             on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback
         )
