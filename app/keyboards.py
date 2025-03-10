@@ -33,9 +33,10 @@ async def inline_tag_list(
 
     tags_list_keyboard = InlineKeyboardBuilder()
     for tag in tags:
+        callback_data = f"{on_item_clicked_callback}:{str(tag.id)}"
         tags_list_keyboard.add(InlineKeyboardButton(
             text=tag.name,
-            callback_data=on_item_clicked_callback
+            callback_data=callback_data
         ))
     if on_item_create_clicked_callback is not None:
         tags_list_keyboard.add(InlineKeyboardButton(
