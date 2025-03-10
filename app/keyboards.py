@@ -24,13 +24,13 @@ choose_recordings_search_method_keyboard = InlineKeyboardMarkup(inline_keyboard=
 )
 
 
-async def inline_tag_list(
+async def inline_active_tag_list(
         on_item_clicked_callback: str,
         on_cancel_clicked_callback: str,
-        on_item_create_clicked_callback: str = None
+        on_archived_clicked_callback: str,
+        on_item_create_clicked_callback: str = None,
 ) -> InlineKeyboardMarkup:
-    print(f"inline_tag_list got on_item_clicked_callback={on_item_create_clicked_callback}")
-    tags = await db.get_all_tags()
+    tags = await db.get_active_tags()
 
     tags_list_keyboard = InlineKeyboardBuilder()
     for tag in tags:
@@ -44,9 +44,57 @@ async def inline_tag_list(
             text="➕ Создать тег",
             callback_data=on_item_create_clicked_callback
         ))
+    if on_archived_clicked_callback is not None:
+        tags_list_keyboard.add(InlineKeyboardButton(
+            text="📦 Архивированные теги",
+            callback_data=on_archived_clicked_callback
+        ))
     tags_list_keyboard.add(InlineKeyboardButton(
-        text="❌ Отмена",
+        text="❌ Отменить",
         callback_data=on_cancel_clicked_callback
+    ))
+    return tags_list_keyboard.adjust(1).as_markup()
+
+
+tag_deletion_confirmation_keyboard = InlineKeyboardMarkup(
+    inline_keyboard=[
+        [InlineKeyboardButton(text="Нет, вернуться назад", callback_data=Callbacks.cancel_deletion)],
+        [InlineKeyboardButton(text="Да, удалить навсегда", callback_data=Callbacks.confirm_deletion)]
+    ]
+)
+
+
+async def inline_archived_tag_actions(
+        on_unarchive_clicked_callback: str,
+        on_delete_clicked_callback: str,
+        on_back_clicked_callback: str,
+) -> InlineKeyboardMarkup:
+    tag_action_keyboard = InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(text="📤 Разархивировать", callback_data=on_unarchive_clicked_callback)],
+            [InlineKeyboardButton(text="🗑️ Удалить", callback_data=on_delete_clicked_callback)],
+            [InlineKeyboardButton(text="↩ Назад", callback_data=on_back_clicked_callback)],
+        ]
+    )
+    return tag_action_keyboard
+
+
+async def inline_archived_tag_list(
+        on_item_clicked_callback: str,
+        on_back_clicked_callback: str,
+) -> InlineKeyboardMarkup:
+    tags = await db.get_archived_tags()
+
+    tags_list_keyboard = InlineKeyboardBuilder()
+    for tag in tags:
+        callback_data = f"{on_item_clicked_callback}:{str(tag.id)}"
+        tags_list_keyboard.add(InlineKeyboardButton(
+            text=tag.name,
+            callback_data=callback_data
+        ))
+    tags_list_keyboard.add(InlineKeyboardButton(
+        text="↩ Назад",
+        callback_data=on_back_clicked_callback
     ))
     return tags_list_keyboard.adjust(1).as_markup()
 
@@ -57,7 +105,7 @@ async def inline_single_cancel_button(
     cancel_tag_enter_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(
-                text="❌ Отмена",
+                text="❌ Отменить",
                 callback_data=on_cancel_button_clicked_callback
             )]
         ]
@@ -76,7 +124,7 @@ async def inline_admin_list() -> InlineKeyboardMarkup:
     admin_list_keyboard.add(InlineKeyboardButton(text="➕ Добавить админа", url="https://300.ya.ru"))
     admin_list_keyboard.add(
         InlineKeyboardButton(
-            text="❌ Отмена",
+            text="❌ Отменить",
             callback_data=Callbacks.cancel_primary_action_callback
         )
     )
@@ -92,12 +140,12 @@ def manage_tag_inline_keyboard(tag_id: str) -> InlineKeyboardMarkup:
                     callback_data=f"{Callbacks.tag_edit_callback}:{tag_id}"
                 ),
                 InlineKeyboardButton(
-                    text="🗑️ Удалить",
-                    callback_data=f"{Callbacks.tag_delete_callback}:{tag_id}"
+                    text="📥 Архивировать",
+                    callback_data=f"{Callbacks.tag_archive_callback}:{tag_id}"
                 )
             ],
             [InlineKeyboardButton(
-                text="❌ Отмена",
+                text="↩ Вернуться назад",
                 callback_data=Callbacks.cancel_tag_manage_callback
             )]
         ],

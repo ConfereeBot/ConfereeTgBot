@@ -3,11 +3,11 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
 
+from app.database.tag_db_operations import update_tag_in_db
 from app.keyboards import (
     inline_single_cancel_button, main_actions_keyboard,
 )
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.main_actions.tags_management.db.tags_db_operations import update_tag_in_db
 from app.roles.user.user_cmds import user
 
 
