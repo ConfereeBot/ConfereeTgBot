@@ -1,9 +1,8 @@
 from typing import List
-
 from motor.motor_asyncio import AsyncIOMotorClient
-
 from app.config.config import MONGODB_URI, DB_NAME
 from app.database.models.tag_DBO import Tag
+from app.database.models.admin_DBO import Admin
 
 
 class Database:
@@ -12,13 +11,12 @@ class Database:
         self.db = self.client[DB_NAME]
 
     async def ping(self):
-        # check connection
         await self.db.command("ping")
         print("MongoDB connection successful")
 
     async def setup_indexes(self):
         await self.db["tags"].create_index("name", unique=True)
-        print("Unique index on 'name' created for tags collection")
+        await self.db["admins"].create_index("username", unique=True)
 
     async def get_active_tags(self) -> List[Tag]:
         tags_collection = self.db["tags"]
@@ -33,6 +31,13 @@ class Database:
         async for tag_doc in tags_collection.find({"is_archived": True}):
             tags.append(Tag(**tag_doc))
         return tags
+
+    async def get_all_admins(self) -> List[Admin]:
+        admins_collection = self.db["admins"]
+        admins = []
+        async for admin_doc in admins_collection.find():
+            admins.append(Admin(**admin_doc))
+        return admins
 
 
 db = Database()
