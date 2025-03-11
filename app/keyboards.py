@@ -69,6 +69,9 @@ async def inline_archived_tag_actions(
         on_delete_clicked_callback: str,
         on_back_clicked_callback: str,
 ) -> InlineKeyboardMarkup:
+    print(f"unarchive_callback: {on_unarchive_clicked_callback}")  # Отладка
+    print(f"delete_callback: {on_delete_clicked_callback}")        # Отладка
+    print(f"back_callback: {on_back_clicked_callback}")            # Отладка
     tag_action_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(text="📤 Разархивировать", callback_data=on_unarchive_clicked_callback)],

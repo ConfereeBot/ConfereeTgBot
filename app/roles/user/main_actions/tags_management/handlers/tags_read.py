@@ -68,7 +68,7 @@ async def on_archived_tag_clicked_in_manage_mode(callback: CallbackQuery):
         reply_markup=await inline_archived_tag_actions(
             on_unarchive_clicked_callback=f"{Callbacks.unarchive_tag_clicked_callback}:{tag_id}",
             on_delete_clicked_callback=f"{Callbacks.tag_delete_callback}:{tag_id}",
-            on_back_clicked_callback=Callbacks.return_back_from_archived_tag_actions_callback
+            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_tag_actions_callback}:{tag_id}"
         )
     )
     await callback.answer("")
@@ -76,6 +76,7 @@ async def on_archived_tag_clicked_in_manage_mode(callback: CallbackQuery):
 
 @user.callback_query(F.data.startswith(Callbacks.unarchive_tag_clicked_callback))
 async def unarchive_tag_clicked_callback(callback: CallbackQuery):
+    print(f"Received callback.data: {callback.data}")  # Отладка
     try:
         tag_id = callback.data.split(":")[1]
     except IndexError:
@@ -157,9 +158,9 @@ async def on_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Выберите действие:",
         reply_markup=await inline_archived_tag_actions(
-            on_unarchive_clicked_callback=Callbacks.unarchive_tag_clicked_callback,
-            on_delete_clicked_callback=Callbacks.tag_delete_callback,
-            on_back_clicked_callback=Callbacks.return_back_from_archived_callback
+            on_unarchive_clicked_callback=f"{Callbacks.unarchive_tag_clicked_callback}:{tag_id}",
+            on_delete_clicked_callback=f"{Callbacks.tag_delete_callback}:{tag_id}",
+            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_callback}:{tag_id}",
         )
     )
     await state.clear()
@@ -176,10 +177,11 @@ async def on_confirm_delete(callback: CallbackQuery, state: FSMContext):
         await state.clear()
         return
     success, response = await delete_tag_from_db(tag_id)
-    await callback.message.edit_text(
+    await callback.message.answer(
         text=response,
         reply_markup=main_actions_keyboard
     )
+    await callback.message.delete()
     await state.clear()
     await callback.answer("")
 
