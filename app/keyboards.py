@@ -121,13 +121,14 @@ async def inline_admin_list(on_cancel_clicked_callback: str) -> InlineKeyboardMa
     admins = await db.get_all_admins()
     admin_list_keyboard = InlineKeyboardBuilder()
     for admin in admins:
+        print(f"Admin data: {admin}")
         admin_list_keyboard.add(InlineKeyboardButton(
             text=admin.username,
             callback_data=f"admin_clicked:{admin.id}"
         ))
     admin_list_keyboard.add(InlineKeyboardButton(
         text="➕ Добавить админа",
-        callback_data=Callbacks.cancel_primary_action_callback
+        callback_data=Callbacks.add_admin_callback
     ))
     admin_list_keyboard.add(InlineKeyboardButton(
         text="❌ Отменить",

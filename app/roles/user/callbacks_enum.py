@@ -17,3 +17,5 @@ class Callbacks:
     archived_tag_clicked_manage_callback = "on_archived_tag_clicked_in_manage"
     unarchive_tag_clicked_callback = "on_unarchive_tag_clicked_in_manage"
     show_archived_in_manage_mode = "on_show_archive_in_manage"
+    add_admin_callback = "on_add_admin"
+    admin_delete_callback = "on_admin_delete"

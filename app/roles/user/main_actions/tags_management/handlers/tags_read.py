@@ -10,9 +10,8 @@ from app.roles.user.callbacks_enum import Callbacks
 from app.roles.user.user_cmds import user, logger
 
 
-# Определяем состояния
 class TagManagementStates(StatesGroup):
-    waiting_for_delete_confirmation = State()  # Состояние для подтверждения удаления
+    waiting_for_delete_confirmation = State()
 
 
 # General
@@ -104,7 +103,7 @@ async def return_back_from_archived(callback: CallbackQuery, state: FSMContext):
 @user.callback_query(F.data.startswith(Callbacks.tag_clicked_manage_callback))
 async def tag_clicked_manage_callback(callback: CallbackQuery):
     try:
-        tag_id = callback.data.split(":")[1]  # Извлекаем tag_id
+        tag_id = callback.data.split(":")[1]
     except IndexError:
         await callback.answer("Ошибка: тег не выбран!", show_alert=True)
         return
@@ -119,11 +118,10 @@ async def tag_clicked_manage_callback(callback: CallbackQuery):
     )
 
 
-# Новый хэндлер для архивации
 @user.callback_query(F.data.startswith(Callbacks.tag_archive_callback))
 async def on_tag_archive_callback(callback: CallbackQuery):
     try:
-        tag_id = callback.data.split(":")[1]  # Извлекаем tag_id
+        tag_id = callback.data.split(":")[1]
     except IndexError:
         await callback.answer("Ошибка: тег не выбран!", show_alert=True)
         return
@@ -136,7 +134,6 @@ async def on_tag_archive_callback(callback: CallbackQuery):
     await callback.answer("")
 
 
-# Callback для удаления тега
 @user.callback_query(F.data.startswith(Callbacks.tag_delete_callback))
 async def on_tag_delete_callback(callback: CallbackQuery, state: FSMContext):
     try:
@@ -157,7 +154,6 @@ async def on_tag_delete_callback(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-# Обработка отмены удаления
 @user.callback_query(F.data == Callbacks.cancel_deletion, TagManagementStates.waiting_for_delete_confirmation)
 async def on_cancel_delete(callback: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
@@ -183,7 +179,6 @@ async def on_cancel_delete(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-# Обработка подтверждения удаления
 @user.callback_query(F.data == Callbacks.confirm_deletion, TagManagementStates.waiting_for_delete_confirmation)
 async def on_confirm_delete(callback: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
