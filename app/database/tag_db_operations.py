@@ -124,3 +124,20 @@ async def archive_tag_in_db(tag_id: str) -> tuple[bool, str]:
     except Exception as e:
         logger.error(f"Ошибка при архивировании тега с id '{tag_id}': {e}")
         return False, f"Ошибка: {e}"
+
+
+async def get_tag_by_id(tag_id: str) -> Tag | None:
+    """
+    Retrieves a tag from the DB by its ID.
+    Returns Tag object or None if not found.
+    """
+    tags_collection: AgnosticCollection = db.db["tags"]
+    try:
+        tag_doc = await tags_collection.find_one({"_id": ObjectId(tag_id)})
+        if tag_doc:
+            return Tag(**tag_doc)
+        logger.warning(f"Тег с id '{tag_id}' не найден")
+        return None
+    except Exception as e:
+        logger.error(f"Ошибка при получении тега с id '{tag_id}': {e}")
+        return None
