@@ -117,20 +117,22 @@ async def inline_single_cancel_button(
     return cancel_tag_enter_keyboard
 
 
-admin_list = ["@yuriy_magus", "@semyonq"]
-
-
-async def inline_admin_list() -> InlineKeyboardMarkup:
+async def inline_admin_list(on_cancel_clicked_callback: str) -> InlineKeyboardMarkup:
+    admins = await db.get_all_admins()
     admin_list_keyboard = InlineKeyboardBuilder()
-    for admin in admin_list:
-        admin_list_keyboard.add(InlineKeyboardButton(text=admin, url="https://google.com"))
-    admin_list_keyboard.add(InlineKeyboardButton(text="➕ Добавить админа", url="https://300.ya.ru"))
-    admin_list_keyboard.add(
-        InlineKeyboardButton(
-            text="❌ Отменить",
-            callback_data=Callbacks.cancel_primary_action_callback
-        )
-    )
+    for admin in admins:
+        admin_list_keyboard.add(InlineKeyboardButton(
+            text=admin.username,
+            callback_data=f"admin_clicked:{admin.id}"
+        ))
+    admin_list_keyboard.add(InlineKeyboardButton(
+        text="➕ Добавить админа",
+        callback_data=Callbacks.cancel_primary_action_callback
+    ))
+    admin_list_keyboard.add(InlineKeyboardButton(
+        text="❌ Отменить",
+        callback_data=on_cancel_clicked_callback
+    ))
     return admin_list_keyboard.adjust(1).as_markup()
 
 
