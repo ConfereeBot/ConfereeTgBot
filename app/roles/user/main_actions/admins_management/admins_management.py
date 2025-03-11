@@ -15,6 +15,14 @@ class AdminManagementStates(StatesGroup):
 
 
 def is_valid_telegram_username(username: str) -> bool:
+    """
+    Validates Telegram-username.
+    Username must:
+    - Start with @
+    - Have 5 or more symbols
+    - No digit or _ after @
+    - Have only letters (a-z, A-Z), digits (0-9) and _
+    """
     return (username.startswith("@") and
             len(username) >= 5 and
             not username[1].isdigit() and
@@ -51,7 +59,8 @@ async def process_admin_username(message: Message, state: FSMContext):
     username = message.text.strip()
     if not is_valid_telegram_username(username):
         await message.answer(
-            text="Некорректный формат! Используйте '@username' (минимум 5 символов, только буквы, цифры и _, не начинается с цифры или _).\nВведите снова:",
+            text="Некорректный формат! Используйте '@username' (минимум 5 символов, только буквы, цифры и _, "
+                 "не начинается с цифры или _).\nВведите снова:",
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback)
         )
         return
@@ -74,7 +83,6 @@ async def process_admin_username(message: Message, state: FSMContext):
 async def on_admin_clicked(callback: CallbackQuery):
     try:
         admin_id = callback.data.split(":")[1]
-        print(f"Received admin_id: {admin_id}")  # Отладка
     except IndexError:
         await callback.answer("Ошибка: админ не выбран!", show_alert=True)
         return
@@ -92,6 +100,10 @@ async def on_admin_clicked(callback: CallbackQuery):
             [InlineKeyboardButton(
                 text="🗑️ Удалить админа",
                 callback_data=f"{Callbacks.admin_delete_callback}:{admin_id}"
+            )],
+            [InlineKeyboardButton(
+                text="↩ Вернуться назад",
+                callback_data=Callbacks.return_to_admin_list_callback
             )]
         ]
     )
@@ -112,4 +124,15 @@ async def on_admin_delete_callback(callback: CallbackQuery):
         reply_markup=main_actions_keyboard
     )
     await callback.message.delete()
+    await callback.answer("")
+
+
+@user.callback_query(F.data == Callbacks.return_to_admin_list_callback)
+async def on_return_to_admin_list(callback: CallbackQuery):
+    await callback.message.edit_text(
+        text="Выберите админа или создайте нового:",
+        reply_markup=await inline_admin_list(
+            on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback
+        )
+    )
     await callback.answer("")

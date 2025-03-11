@@ -19,3 +19,4 @@ class Callbacks:
     show_archived_in_manage_mode = "on_show_archive_in_manage"
     add_admin_callback = "on_add_admin"
     admin_delete_callback = "on_admin_delete"
+    return_to_admin_list_callback = "on_return_to_admin_list"
