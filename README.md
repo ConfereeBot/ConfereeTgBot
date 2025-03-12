@@ -1,7 +1,7 @@
 # ConfereeTgBot
 Tg bot for managing GMeetBot service
 
-## Installing project in DEBUG mode
+## Installing project
 1. Make sure you have `poetry` and *docker desktop* installed
 2. Run docker engine
 3. `git clone https://github.com/ConfereeBot/ConfereeTgBot.git`

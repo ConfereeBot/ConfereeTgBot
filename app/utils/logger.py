@@ -34,4 +34,7 @@ def setup_logger(logger_name):
     # Custom
     logger = logging.getLogger(logger_name)
 
+    # Ignore Mongo's debug messages
+    logging.getLogger("pymongo.topology").setLevel(logging.INFO)
+
     return logger
