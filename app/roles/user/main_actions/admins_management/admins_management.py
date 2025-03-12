@@ -89,8 +89,6 @@ async def process_admin_username(message: Message, state: FSMContext):
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback)
         )
         return
-    else:
-        print(f"Admin with tag {username} is not in OWNERS={OWNERS}")
     success, response = await add_admin_to_db(username)
     if success:
         await message.answer(text=response, reply_markup=main_actions_keyboard)

@@ -1,13 +1,26 @@
 from aiogram import F
 from aiogram.fsm.context import FSMContext
-from aiogram.types import Message, CallbackQuery
-
 from aiogram.fsm.state import State, StatesGroup
-from app.database.tag_db_operations import unarchive_tag_in_db, delete_tag_from_db, archive_tag_in_db, get_tag_by_id
-from app.keyboards import inline_active_tag_list, manage_tag_inline_keyboard, inline_archived_tag_list, \
-    inline_archived_tag_actions, main_actions_keyboard, inline_single_cancel_button, tag_deletion_confirmation_keyboard
+from aiogram.types import CallbackQuery, Message
+
+from app.config import labels
+from app.database.tag_db_operations import (
+    archive_tag_in_db,
+    delete_tag_from_db,
+    get_tag_by_id,
+    unarchive_tag_in_db,
+)
+from app.keyboards import (
+    inline_active_tag_list,
+    inline_archived_tag_actions,
+    inline_archived_tag_list,
+    inline_single_cancel_button,
+    main_actions_keyboard,
+    manage_tag_inline_keyboard,
+    tag_deletion_confirmation_keyboard,
+)
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user, logger
+from app.roles.user.user_cmds import logger, user
 
 
 class TagManagementStates(StatesGroup):
@@ -24,7 +37,7 @@ async def manage_tags(event: Message | CallbackQuery, state: FSMContext = None):
         on_item_clicked_callback=Callbacks.tag_clicked_manage_callback,
         on_item_create_clicked_callback=Callbacks.tag_create_callback,
         on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback,
-        on_archived_clicked_callback=Callbacks.show_archived_in_manage_mode
+        on_archived_clicked_callback=Callbacks.show_archived_in_manage_mode,
     )
     print(f"Type of this is {type(Callbacks.cancel_primary_action_callback)}")
     if isinstance(event, Message):
@@ -34,7 +47,7 @@ async def manage_tags(event: Message | CallbackQuery, state: FSMContext = None):
         await event.answer("")
 
 
-@user.message(F.text == "🗂️ Управление тегами")
+@user.message(F.text == labels.MANAGE_TAGS)
 async def handle_manage_tags_command(message: Message):
     await manage_tags(message)
 
@@ -50,7 +63,7 @@ async def on_show_archived_in_manage_callback(callback: CallbackQuery):
         reply_markup=await inline_archived_tag_list(
             on_item_clicked_callback=Callbacks.archived_tag_clicked_manage_callback,
             on_back_clicked_callback=Callbacks.return_back_from_archived_callback,
-        )
+        ),
     )
     await callback.answer("")
 
@@ -71,8 +84,9 @@ async def on_archived_tag_clicked_in_manage_mode(callback: CallbackQuery):
         reply_markup=await inline_archived_tag_actions(
             on_unarchive_clicked_callback=f"{Callbacks.unarchive_tag_clicked_callback}:{tag_id}",
             on_delete_clicked_callback=f"{Callbacks.tag_delete_callback}:{tag_id}",
-            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_tag_actions_callback}:{tag_id}"
-        )
+            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_tag_actions_callback}:\
+{tag_id}",
+        ),
     )
     await callback.answer("")
 
@@ -86,10 +100,7 @@ async def unarchive_tag_clicked_callback(callback: CallbackQuery):
         await callback.answer("Ошибка: тег не выбран!", show_alert=True)
         return
     success, response = await unarchive_tag_in_db(tag_id)
-    await callback.message.answer(
-        text=response,
-        reply_markup=main_actions_keyboard
-    )
+    await callback.message.answer(text=response, reply_markup=main_actions_keyboard)
     await callback.message.delete()
     await callback.answer("")
 
@@ -114,7 +125,7 @@ async def tag_clicked_manage_callback(callback: CallbackQuery):
     await callback.answer("")
     await callback.message.edit_text(
         text=f"Выберите, что вы хотите сделать с тегом '{tag.name}'",
-        reply_markup=manage_tag_inline_keyboard(tag_id)
+        reply_markup=manage_tag_inline_keyboard(tag_id),
     )
 
 
@@ -126,10 +137,7 @@ async def on_tag_archive_callback(callback: CallbackQuery):
         await callback.answer("Ошибка: тег не выбран!", show_alert=True)
         return
     success, response = await archive_tag_in_db(tag_id)
-    await callback.message.answer(
-        text=response,
-        reply_markup=main_actions_keyboard
-    )
+    await callback.message.answer(text=response, reply_markup=main_actions_keyboard)
     await callback.message.delete()
     await callback.answer("")
 
@@ -149,12 +157,15 @@ async def on_tag_delete_callback(callback: CallbackQuery, state: FSMContext):
     await state.set_state(TagManagementStates.waiting_for_delete_confirmation)
     await callback.message.edit_text(
         text=f"Вы точно хотите удалить тег '{tag.name}' и все связанные с ним записи навсегда?",
-        reply_markup=tag_deletion_confirmation_keyboard
+        reply_markup=tag_deletion_confirmation_keyboard,
     )
     await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.cancel_deletion, TagManagementStates.waiting_for_delete_confirmation)
+@user.callback_query(
+    F.data == Callbacks.cancel_deletion,
+    TagManagementStates.waiting_for_delete_confirmation,
+)
 async def on_cancel_delete(callback: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
     tag_id = state_data.get("tag_id")
@@ -172,14 +183,18 @@ async def on_cancel_delete(callback: CallbackQuery, state: FSMContext):
         reply_markup=await inline_archived_tag_actions(
             on_unarchive_clicked_callback=f"{Callbacks.unarchive_tag_clicked_callback}:{tag_id}",
             on_delete_clicked_callback=f"{Callbacks.tag_delete_callback}:{tag_id}",
-            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_tag_actions_callback}:{tag_id}"
-        )
+            on_back_clicked_callback=f"{Callbacks.return_back_from_archived_tag_actions_callback}:\
+{tag_id}",
+        ),
     )
     await state.clear()
     await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.confirm_deletion, TagManagementStates.waiting_for_delete_confirmation)
+@user.callback_query(
+    F.data == Callbacks.confirm_deletion,
+    TagManagementStates.waiting_for_delete_confirmation,
+)
 async def on_confirm_delete(callback: CallbackQuery, state: FSMContext):
     state_data = await state.get_data()
     tag_id = state_data.get("tag_id")
@@ -188,10 +203,7 @@ async def on_confirm_delete(callback: CallbackQuery, state: FSMContext):
         await state.clear()
         return
     success, response = await delete_tag_from_db(tag_id)
-    await callback.message.answer(
-        text=response,
-        reply_markup=main_actions_keyboard
-    )
+    await callback.message.answer(text=response, reply_markup=main_actions_keyboard)
     await callback.message.delete()
     await state.clear()
     await callback.answer("")
