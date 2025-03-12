@@ -37,7 +37,7 @@ choose_recordings_search_method_keyboard = InlineKeyboardMarkup(
 async def inline_active_tag_list(
     on_item_clicked_callback: str,
     on_cancel_clicked_callback: str,
-    on_archived_clicked_callback: str,
+    on_archived_clicked_callback: str = None,
     on_item_create_clicked_callback: str = None,
 ) -> InlineKeyboardMarkup:
     tags = await db.get_active_tags()
