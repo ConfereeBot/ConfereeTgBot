@@ -26,7 +26,7 @@ async def get_recording(message: Message):
     )
 
 
-@user.callback_query(F.data == "get_recording_by_tag")
+@user.callback_query(F.data == Callbacks.get_recording_by_tag_callback)
 async def get_recording_by_tag(callback: CallbackQuery):
     await callback.answer("")
     await callback.message.edit_text(
@@ -38,7 +38,7 @@ async def get_recording_by_tag(callback: CallbackQuery):
     )
 
 
-@user.callback_query(F.data == "get_recording_by_link")
+@user.callback_query(F.data == Callbacks.get_recording_by_link_callback)
 async def get_recording_by_link(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
     await callback.message.edit_text(

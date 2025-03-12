@@ -25,14 +25,13 @@ main_actions_keyboard = ReplyKeyboardMarkup(
 choose_recordings_search_method_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
         [
-            InlineKeyboardButton(text=labels.BY_TAG, url="https://ya.ru"),
-            InlineKeyboardButton(text=labels.BY_LINK, url="https://ya.ru"),
+            InlineKeyboardButton(text=labels.BY_TAG, callback_data=Callbacks.get_recording_by_tag_callback),
+            InlineKeyboardButton(text=labels.BY_LINK, callback_data=Callbacks.get_recording_by_link_callback),
         ],
     ],
     resize_keyboard=True,
     input_field_placeholder=labels.CHOOSE_SEARCH_RECORD_TYPE,
 )
-
 
 async def inline_active_tag_list(
     on_item_clicked_callback: str,
