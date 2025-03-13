@@ -24,7 +24,7 @@ class RecordingCreateStates(StatesGroup):
 async def start_recording(message: Message):
     logger.info("start_recording_call")
     await message.answer(
-        text="Выберите тег для новой конференции:",
+        text="Select a tag for the new conference:",
         reply_markup=await inline_active_tag_list(
             on_item_clicked_callback=Callbacks.tag_clicked_in_recording_mode_callback,
             on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback,
@@ -39,17 +39,17 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
     try:
         tag_id = callback.data.split(":")[1]
     except IndexError:
-        await callback.answer("Ошибка: тег не выбран!", show_alert=True)
+        await callback.answer("Error: tag not selected!", show_alert=True)
         return
 
     tag = await get_tag_by_id(tag_id)
     if not tag:
-        await callback.answer("Ошибка: тег не найден в базе данных!", show_alert=True)
+        await callback.answer("Error: tag not found in database!", show_alert=True)
         return
 
-    await state.update_data(tag=tag)
+    await state.update_data(tag_id=tag_id)  # Сохраняем только tag_id
     await callback.message.edit_text(
-        text="Введите ссылку на Google Meet конференцию:",
+        text="Enter the Google Meet conference link:",
         reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
     )
     await state.set_state(RecordingCreateStates.waiting_for_meet_link)
@@ -60,20 +60,20 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
 async def process_meet_link_for_recording(message: Message, state: FSMContext):
     meet_link = message.text.strip()
     state_data = await state.get_data()
-    tag = state_data.get("tag")
+    tag_id = state_data.get("tag_id")
 
-    if not tag:
+    if not tag_id:
         await message.answer(
-            text="Ошибка: тег не выбран! Попробуйте начать заново.",
+            text="Error: tag not selected! Please start over.",
             reply_markup=main_actions_keyboard,
         )
         await state.clear()
         return
 
-    success, response, conference_id = await add_conference_to_db(meet_link, tag)
+    success, response, conference_id = await add_conference_to_db(meet_link, ObjectId(tag_id))
     if success:
         await message.answer(
-            text=f"{response}\nID конференции: {conference_id}\nЗаписей пока нет.",
+            text=f"{response}\nConference ID: {conference_id}\nNo recordings yet.",
             reply_markup=main_actions_keyboard,
         )
     else:

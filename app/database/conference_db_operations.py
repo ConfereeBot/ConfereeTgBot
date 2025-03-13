@@ -1,20 +1,20 @@
+from typing import List, Optional
+
+from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
-from bson import ObjectId
-from typing import List, Optional
 
 from app.database.database import db
 from app.database.models.conference_DBO import Conference
-from app.database.models.tag_DBO import Tag
 from app.roles.user.user_cmds import logger
 
 
-async def add_conference_to_db(link: str, tag: Tag) -> tuple[bool, str, Optional[ObjectId]]:
+async def add_conference_to_db(link: str, tag_id: ObjectId) -> tuple[bool, str, Optional[ObjectId]]:
     """Add a new conference to the database.
 
     Args:
         link (str): The Google Meet conference link.
-        tag (Tag): The tag associated with the conference.
+        tag_id (ObjectId): The ID of the tag associated with the conference.
 
     Returns:
         tuple[bool, str, Optional[ObjectId]]: A tuple containing:
@@ -22,7 +22,7 @@ async def add_conference_to_db(link: str, tag: Tag) -> tuple[bool, str, Optional
             - Response message.
             - Conference ID (or None if failed).
     """
-    conference = Conference(link=link, tag=tag)
+    conference = Conference(link=link, tag_id=tag_id)
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         await conferences_collection.insert_one(conference.model_dump(by_alias=True))
@@ -49,9 +49,7 @@ async def get_conference_by_id(conference_id: str) -> Optional[Conference]:
     try:
         conference_doc = await conferences_collection.find_one({"_id": ObjectId(conference_id)})
         if conference_doc:
-            tag = Tag(**conference_doc["tag"])
-            conference_doc.pop("tag")
-            return Conference(**conference_doc, tag=tag)
+            return Conference(**conference_doc)
         logger.warning(f"Conference with id '{conference_id}' not found")
         return None
     except Exception as e:
@@ -71,10 +69,8 @@ async def get_conferences_by_tag(tag_id: str) -> List[Conference]:
     conferences_collection: AgnosticCollection = db.db["conferences"]
     conferences = []
     try:
-        async for conference_doc in conferences_collection.find({"tag._id": ObjectId(tag_id)}):
-            tag = Tag(**conference_doc["tag"])
-            conference_doc.pop("tag")
-            conferences.append(Conference(**conference_doc, tag=tag))
+        async for conference_doc in conferences_collection.find({"tag_id": ObjectId(tag_id)}):
+            conferences.append(Conference(**conference_doc))
         return conferences
     except Exception as e:
         logger.error(f"Error retrieving conferences by tag '{tag_id}': {e}")
@@ -94,9 +90,7 @@ async def get_conference_by_link(link: str) -> Optional[Conference]:
     try:
         conference_doc = await conferences_collection.find_one({"link": link})
         if conference_doc:
-            tag = Tag(**conference_doc["tag"])
-            conference_doc.pop("tag")
-            return Conference(**conference_doc, tag=tag)
+            return Conference(**conference_doc)
         logger.warning(f"Conference with link '{link}' not found")
         return None
     except Exception as e:
