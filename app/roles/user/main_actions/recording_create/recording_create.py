@@ -27,7 +27,7 @@ async def start_recording(message: Message):
     await message.answer(
         text="Выберите тег для новой конференции:",
         reply_markup=await inline_active_tag_list(
-            on_item_clicked_callback=Callbacks.tag_clickedイト_in_recording_mode_callback,
+            on_item_clicked_callback=Callbacks.tag_clicked_in_search_mode_callback,
             on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback,
             on_archived_clicked_callback=None,
             on_item_create_clicked_callback=None,
