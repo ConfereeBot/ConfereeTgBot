@@ -119,12 +119,12 @@ async def process_meet_link(message: Message, state: FSMContext):
             text=response.strip(),
             reply_markup=main_actions_keyboard,
         )
+        await state.clear()
     else:
         await message.answer(
-            text=f"Конференция с ссылкой '{meet_link}' не найдена!",
+            text=f"Конференция с ссылкой '{meet_link}' не найдена! \nПроверьте ссылку и повторите попытку",
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
         )
-    await state.clear()
 
 
 @user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
