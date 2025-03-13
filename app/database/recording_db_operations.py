@@ -10,7 +10,7 @@ from app.roles.user.user_cmds import logger
 
 async def add_recording_to_db(meeting_id: ObjectId, link: str) -> tuple[bool, str, Optional[ObjectId]]:
     """Добавляет новую запись в базу данных."""
-    recording = Recording(meeting_id=meeting_id, link=link)
+    recording = Recording(conference_id=meeting_id, link=link)
     recordings_collection: AgnosticCollection = db.db["recordings"]
     try:
         await recordings_collection.insert_one(recording.model_dump(by_alias=True))
