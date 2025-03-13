@@ -17,7 +17,8 @@ class Database:
     async def setup_indexes(self):
         await self.db["tags"].create_index("name", unique=True)
         await self.db["admins"].create_index("username", unique=True)
-        await self.db["recordings"].create_index("link", unique=True)
+        await self.db["recordings"].create_index("meeting_id")
+        await self.db["conferences"].create_index("link", unique=True)
 
     async def get_active_tags(self) -> List[Tag]:
         tags_collection = self.db["tags"]
