@@ -3,7 +3,7 @@ from datetime import datetime
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.config import labels
 from app.database.conference_db_operations import get_conferences_by_tag, get_conference_by_link
@@ -70,23 +70,42 @@ async def process_tag_selection(callback: CallbackQuery):
         )
     else:
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
-        for conference in conferences:
+        buttons = []
+        for i, conference in enumerate(conferences, 1):  # Нумерация начинается с 1
             timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-            response += f"Конференция: {conference.link}\nДата: {timestamp_str}\nID: {conference.id}\n"
+            response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n"
             if conference.recordings:
                 response += "Записи:\n"
                 for recording_id in conference.recordings:
                     recording = await get_recording_by_id(str(recording_id))
                     if recording:
-                        response += f"  - {recording.link} (ID: {recording.id})\n"
+                        response += f"  - {recording.link}\n"
                     else:
-                        response += f"  - Запись с ID {recording_id} не найдена\n"
+                        response += f"  - Запись не найдена\n"
             else:
                 response += "Записей нет.\n"
             response += "\n"
+            # Delete www and protocol from link
+            clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
+            # Date and time format
+            short_date = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M')
+            # Button text: NUM. LINK, DATE_TIME
+            button_text = f"{i}. {clean_link}, {short_date}"
+            buttons.append(
+                InlineKeyboardButton(
+                    text=button_text,
+                    callback_data=f"open_conference:{conference.id}"
+                )
+            )
+
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn] for btn in buttons])
+        keyboard.inline_keyboard.append(
+            [InlineKeyboardButton(text="Отменить", callback_data=Callbacks.cancel_primary_action_callback)]
+        )
+
         await callback.message.edit_text(
             text=response.strip(),
-            reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
+            reply_markup=keyboard,
         )
     await callback.answer("")
 
@@ -111,20 +130,29 @@ async def process_meet_link(message: Message, state: FSMContext):
         tag = await get_tag_by_id(str(conference.tag_id))  # Fetch tag by tag_id
         tag_name = tag.name if tag else "Неизвестный тег"
         timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-        response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\nID: {conference.id}\n"
+        response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n"
         if conference.recordings:
             response += "Записи:\n"
+            buttons = []
             for recording_id in conference.recordings:
                 recording = await get_recording_by_id(str(recording_id))
                 if recording:
-                    response += f"  - {recording.link} (ID: {recording.id})\n"
+                    response += f"  - {recording.link}\n"
+                    buttons.append(
+                        InlineKeyboardButton(
+                            text=f"Открыть запись: {recording.link.split('/')[-1]}",
+                            callback_data=f"open_recording:{recording.id}"
+                        )
+                    )
                 else:
-                    response += f"  - Запись с ID {recording_id} не найдена\n"
+                    response += f"  - Запись не найдена\n"
+            keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn] for btn in buttons])
         else:
             response += "Записей нет."
+            keyboard = main_actions_keyboard
         await message.answer(
             text=response.strip(),
-            reply_markup=main_actions_keyboard,
+            reply_markup=keyboard,
         )
     else:
         await message.answer(
@@ -144,3 +172,17 @@ async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext)
         reply_markup=main_actions_keyboard,
     )
     await state.clear()
+
+
+@user.callback_query(F.data.startswith("open_recording"))
+async def handle_recording_button(callback: CallbackQuery):
+    """Handle the click on a recording button (stub for now)."""
+    recording_id = callback.data.split(":")[1]
+    await callback.answer(f"Заглушка: открытие записи с ID {recording_id} пока не реализовано!", show_alert=True)
+
+
+@user.callback_query(F.data.startswith("open_conference"))
+async def handle_conference_button(callback: CallbackQuery):
+    """Handle the click on a conference button (stub for now)."""
+    conference_id = callback.data.split(":")[1]
+    await callback.answer(f"Заглушка: открытие конференции с ID {conference_id} пока не реализовано!", show_alert=True)
