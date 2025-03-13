@@ -25,18 +25,20 @@ class RecordingSearchStates(StatesGroup):
 
 @user.message(F.text == labels.GET_RECORD)
 async def get_recording(message: Message):
+    """Handle the command to search for recordings."""
     logger.info("get_recordings_call")
     await message.answer(
-        text="How do you want to find a recording: by tag or by link?",
+        text="Как вы хотите найти запись: по тегу или по ссылке?",
         reply_markup=recordings_keyboard,
     )
 
 
 @user.callback_query(F.data == Callbacks.get_recording_by_tag_callback)
 async def get_recording_by_tag(callback: CallbackQuery):
+    """Start the process of searching recordings by tag."""
     await callback.answer("")
     await callback.message.edit_text(
-        text="Select the desired tag:",
+        text="Выберите нужный тег:",
         reply_markup=await inline_active_tag_list(
             on_item_clicked_callback=Callbacks.tag_clicked_in_search_mode_callback,
             on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback,
@@ -48,38 +50,39 @@ async def get_recording_by_tag(callback: CallbackQuery):
 
 @user.callback_query(F.data.startswith(Callbacks.tag_clicked_in_search_mode_callback))
 async def process_tag_selection(callback: CallbackQuery):
+    """Process the selection of a tag for searching conferences."""
     try:
         tag_id = callback.data.split(":")[1]
     except IndexError:
-        await callback.answer("Error: tag not selected!", show_alert=True)
+        await callback.answer("Ошибка: тег не выбран!", show_alert=True)
         return
 
     tag = await get_tag_by_id(tag_id)
     if not tag:
-        await callback.answer("Error: tag not found in database!", show_alert=True)
+        await callback.answer("Ошибка: тег не найден в базе данных!", show_alert=True)
         return
 
     conferences = await get_conferences_by_tag(tag_id)
     if not conferences:
         await callback.message.edit_text(
-            text=f"No conferences found with tag '{tag.name}'.",
+            text=f"Конференций с тегом '{tag.name}' не найдено.",
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
         )
     else:
-        response = f"Found conferences with tag '{tag.name}':\n\n"
+        response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         for conference in conferences:
             timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-            response += f"Conference: {conference.link}\nDate: {timestamp_str}\nID: {conference.id}\n"
+            response += f"Конференция: {conference.link}\nДата: {timestamp_str}\nID: {conference.id}\n"
             if conference.recordings:
-                response += "Recordings:\n"
+                response += "Записи:\n"
                 for recording_id in conference.recordings:
                     recording = await get_recording_by_id(str(recording_id))
                     if recording:
                         response += f"  - {recording.link} (ID: {recording.id})\n"
                     else:
-                        response += f"  - Recording with ID {recording_id} not found\n"
+                        response += f"  - Запись с ID {recording_id} не найдена\n"
             else:
-                response += "No recordings.\n"
+                response += "Записей нет.\n"
             response += "\n"
         await callback.message.edit_text(
             text=response.strip(),
@@ -90,9 +93,10 @@ async def process_tag_selection(callback: CallbackQuery):
 
 @user.callback_query(F.data == Callbacks.get_recording_by_link_callback)
 async def start_recording_by_link(callback: CallbackQuery, state: FSMContext):
+    """Start the process of searching recordings by conference link."""
     await callback.answer("")
     await callback.message.edit_text(
-        text="Enter the Google Meet conference link:",
+        text="Введите ссылку на Google Meet конференцию:",
         reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
     )
     await state.set_state(RecordingSearchStates.waiting_for_meet_link)
@@ -100,30 +104,31 @@ async def start_recording_by_link(callback: CallbackQuery, state: FSMContext):
 
 @user.message(RecordingSearchStates.waiting_for_meet_link)
 async def process_meet_link(message: Message, state: FSMContext):
+    """Process the entered Google Meet link to find the conference and its recordings."""
     meet_link = message.text.strip()
     conference = await get_conference_by_link(meet_link)
     if conference:
-        tag = await get_tag_by_id(str(conference.tag_id))  # Получаем тег по tag_id
-        tag_name = tag.name if tag else "Unknown Tag"
+        tag = await get_tag_by_id(str(conference.tag_id))  # Fetch tag by tag_id
+        tag_name = tag.name if tag else "Неизвестный тег"
         timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-        response = f"Found conference:\nLink: {conference.link}\nTag: {tag_name}\nDate: {timestamp_str}\nID: {conference.id}\n"
+        response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\nID: {conference.id}\n"
         if conference.recordings:
-            response += "Recordings:\n"
+            response += "Записи:\n"
             for recording_id in conference.recordings:
                 recording = await get_recording_by_id(str(recording_id))
                 if recording:
                     response += f"  - {recording.link} (ID: {recording.id})\n"
                 else:
-                    response += f"  - Recording with ID {recording_id} not found\n"
+                    response += f"  - Запись с ID {recording_id} не найдена\n"
         else:
-            response += "No recordings."
+            response += "Записей нет."
         await message.answer(
             text=response.strip(),
             reply_markup=main_actions_keyboard,
         )
     else:
         await message.answer(
-            text=f"Conference with link '{meet_link}' not found!",
+            text=f"Конференция с ссылкой '{meet_link}' не найдена!",
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
         )
     await state.clear()
@@ -131,10 +136,11 @@ async def process_meet_link(message: Message, state: FSMContext):
 
 @user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
 async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext):
+    """Handle the cancellation of the current action."""
     await callback.answer("")
     await callback.message.delete()
     await callback.message.answer(
-        text="Action cancelled. Select a new action using the buttons below the keyboard.",
+        text="Действие отменено. Выберите новое действие с помощью кнопок под клавиатурой.",
         reply_markup=main_actions_keyboard,
     )
     await state.clear()
