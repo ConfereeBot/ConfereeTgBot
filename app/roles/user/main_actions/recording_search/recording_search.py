@@ -104,7 +104,7 @@ async def process_meet_link(message: Message, state: FSMContext):
     if conference:
         tag_name = conference.tag.name
         timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-        response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\nID: {conference.id}\n"
+        response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\n"
         if conference.recordings:
             response += "Записи:\n"
             for recording_id in conference.recordings:
@@ -114,7 +114,7 @@ async def process_meet_link(message: Message, state: FSMContext):
                 else:
                     response += f"  - Запись с ID {recording_id} не найдена\n"
         else:
-            response += "Записей нет."
+            response += "Записей пока нет."
         await message.answer(
             text=response.strip(),
             reply_markup=main_actions_keyboard,
