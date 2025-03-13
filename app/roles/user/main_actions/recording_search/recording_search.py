@@ -132,7 +132,10 @@ async def process_meet_link(message: Message, state: FSMContext):
                         )
                     )
         keyboard = InlineKeyboardMarkup(
-            inline_keyboard=[[btn] for btn in buttons]) if buttons else main_actions_keyboard
+            inline_keyboard=[[btn] for btn in buttons]) if buttons else InlineKeyboardMarkup(inline_keyboard=[])
+        keyboard.inline_keyboard.append(
+            [InlineKeyboardButton(text="Отменить", callback_data=Callbacks.cancel_primary_action_callback)]
+        )
         await message.answer(
             text=response.strip(),
             reply_markup=keyboard,
