@@ -15,6 +15,7 @@ class Callbacks:
     tag_create_callback = "on_tag_create"
     tag_clicked_manage_callback = "on_tag_clicked_manage"
     tag_clicked_in_recording_mode_callback = "on_tag_clicked_in_recording"
+    tag_clicked_in_search_mode_callback = "on_tag_clicked_in_search_mode"
     tag_archive_callback = "on_tag_archive"
     archived_tag_clicked_manage_callback = "on_archived_tag_clicked_in_manage"
     unarchive_tag_clicked_callback = "on_unarchive_tag_clicked_in_manage"

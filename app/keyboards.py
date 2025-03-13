@@ -33,11 +33,12 @@ choose_recordings_search_method_keyboard = InlineKeyboardMarkup(
     input_field_placeholder=labels.CHOOSE_SEARCH_RECORD_TYPE,
 )
 
+
 async def inline_active_tag_list(
-    on_item_clicked_callback: str,
-    on_cancel_clicked_callback: str,
-    on_archived_clicked_callback: str = None,
-    on_item_create_clicked_callback: str = None,
+        on_item_clicked_callback: str,
+        on_cancel_clicked_callback: str,
+        on_archived_clicked_callback: str = None,
+        on_item_create_clicked_callback: str = None,
 ) -> InlineKeyboardMarkup:
     tags = await db.get_active_tags()
 
@@ -81,9 +82,9 @@ tag_deletion_confirmation_keyboard = InlineKeyboardMarkup(
 
 
 async def inline_archived_tag_actions(
-    on_unarchive_clicked_callback: str,
-    on_delete_clicked_callback: str,
-    on_back_clicked_callback: str,
+        on_unarchive_clicked_callback: str,
+        on_delete_clicked_callback: str,
+        on_back_clicked_callback: str,
 ) -> InlineKeyboardMarkup:
     print(f"unarchive_callback: {on_unarchive_clicked_callback}")  # Отладка
     print(f"delete_callback: {on_delete_clicked_callback}")  # Отладка
@@ -104,8 +105,8 @@ async def inline_archived_tag_actions(
 
 
 async def inline_archived_tag_list(
-    on_item_clicked_callback: str,
-    on_back_clicked_callback: str,
+        on_item_clicked_callback: str,
+        on_back_clicked_callback: str,
 ) -> InlineKeyboardMarkup:
     tags = await db.get_archived_tags()
 
@@ -120,7 +121,7 @@ async def inline_archived_tag_list(
 
 
 async def inline_single_cancel_button(
-    on_cancel_button_clicked_callback: str,
+        on_cancel_button_clicked_callback: str,
 ) -> InlineKeyboardMarkup:
     cancel_tag_enter_keyboard = InlineKeyboardMarkup(
         inline_keyboard=[
