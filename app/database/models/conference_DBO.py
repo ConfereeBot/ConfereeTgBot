@@ -1,15 +1,16 @@
 from pydantic import BaseModel, Field
 from bson import ObjectId
+from typing import List
 from app.database.models.tag_DBO import Tag
 import time
 
 
-class Meeting(BaseModel):
+class Conference(BaseModel):
     id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     tag: Tag = Field(...)
     link: str = Field(..., min_length=1)
     timestamp: int = Field(default_factory=lambda: int(time.time()))
-    recording: ObjectId | None = Field(default=None)
+    recordings: List[ObjectId] = Field(default_factory=list)
 
     class Config:
         arbitrary_types_allowed = True

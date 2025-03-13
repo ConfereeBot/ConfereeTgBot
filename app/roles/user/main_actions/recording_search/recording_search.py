@@ -66,7 +66,7 @@ async def process_tag_selection(callback: CallbackQuery):
     else:
         response = f"Найденные записи с тегом '{tag.name}':\n\n"
         for recording in recordings:
-            timestamp_str = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+            timestamp_str = datetime.fromtimestamp(recording.next_meeting_timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
             response += f"Ссылка: {recording.link}\nДата: {timestamp_str}\nID: {recording.id}\n\n"
         await callback.message.edit_text(
             text=response.strip(),
@@ -91,7 +91,7 @@ async def process_meet_link(message: Message, state: FSMContext):
     recording = await get_recording_by_link(meet_link)  # Здесь вызывается функция из recording_db_operations
     if recording:
         tag_name = recording.tag.name
-        timestamp_str = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+        timestamp_str = datetime.fromtimestamp(recording.next_meeting_timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
         await message.answer(
             text=f"Найдена запись:\nСсылка: {recording.link}\nТег: {tag_name}\nДата: {timestamp_str}\nID: {recording.id}",
             reply_markup=main_actions_keyboard,

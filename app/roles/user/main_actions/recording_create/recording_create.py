@@ -4,7 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from app.config import labels
-from app.database.meeting_db_operations import add_meeting_to_db
+from app.database.conference_db_operations import add_conference_to_db
 from app.database.tag_db_operations import get_tag_by_id
 from app.keyboards import (
     inline_active_tag_list,
@@ -24,7 +24,7 @@ class RecordingCreateStates(StatesGroup):
 async def start_recording(message: Message):
     logger.info("start_recording_call")
     await message.answer(
-        text="Выберите тег для новой встречи:",
+        text="Выберите тег для новой конференции:",
         reply_markup=await inline_active_tag_list(
             on_item_clicked_callback=Callbacks.tag_clicked_in_recording_mode_callback,
             on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback,
@@ -70,10 +70,10 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
         await state.clear()
         return
 
-    success, response, meeting_id = await add_meeting_to_db(meet_link, tag)
+    success, response, conference_id = await add_conference_to_db(meet_link, tag)
     if success:
         await message.answer(
-            text=f"{response}\nID встречи: {meeting_id}\nЗапись пока не создана.",
+            text=f"{response}\nID конференции: {conference_id}\nЗаписей пока нет.",
             reply_markup=main_actions_keyboard,
         )
     else:

@@ -1,8 +1,3 @@
-from typing import List
-
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.config.config import MONGODB_URI, DB_NAME
-
 from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
