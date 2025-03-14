@@ -274,7 +274,7 @@ async def handle_delete_conference(callback: CallbackQuery, state: FSMContext):
 
     await state.update_data(conference_id=conference_id)
     await callback.message.edit_text(
-        text=f"Вы уверены, что хотите удалить конференцию?\nСсылка: {conference.link}",
+        text=f"Вы уверены, что хотите удалить конференцию и все связанные с ней записи?\nСсылка: {conference.link}",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Подтвердить",
                                   callback_data=f"{Callbacks.confirm_delete_conference}:{conference_id}"),
