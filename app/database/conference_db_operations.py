@@ -6,6 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
 from app.database.models.conference_DBO import Conference
+from app.database.recording_db_operations import delete_recording_from_db  # Импортируем для каскадного удаления
 from app.roles.user.user_cmds import logger
 
 
@@ -23,12 +24,12 @@ async def add_conference_to_db(
         periodicity: Optional[int] = None
 ) -> tuple[bool, str]:
     """
-        Adds a new conference to the database.
+    Adds a new conference to the database.
 
-        Returns:
-            tuple[bool, str]: A tuple containing:
-                - Success flag (True if inserted, False if failed).
-                - Response message.
+    Returns:
+        tuple[bool, str]: A tuple containing:
+            - Success flag (True if inserted, False if failed).
+            - Response message.
     """
     conference = {
         "link": meet_link,
@@ -46,14 +47,7 @@ async def add_conference_to_db(
 
 
 async def get_conference_by_id(conference_id: str) -> Optional[Conference]:
-    """Retrieve a conference by its ID.
-
-    Args:
-        conference_id (str): The ID of the conference to retrieve.
-
-    Returns:
-        Optional[Conference]: The conference object if found, None otherwise.
-    """
+    """Retrieve a conference by its ID."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         conference_doc = await conferences_collection.find_one({"_id": ObjectId(conference_id)})
@@ -67,14 +61,7 @@ async def get_conference_by_id(conference_id: str) -> Optional[Conference]:
 
 
 async def get_conferences_by_tag(tag_id: str) -> List[Conference]:
-    """Retrieve all conferences associated with a specific tag.
-
-    Args:
-        tag_id (str): The ID of the tag to filter conferences by.
-
-    Returns:
-        List[Conference]: A list of conference objects matching the tag.
-    """
+    """Retrieve all conferences associated with a specific tag."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     conferences = []
     try:
@@ -87,14 +74,7 @@ async def get_conferences_by_tag(tag_id: str) -> List[Conference]:
 
 
 async def get_conference_by_link(link: str) -> Optional[Conference]:
-    """Retrieve a conference by its link.
-
-    Args:
-        link (str): The Google Meet link of the conference to retrieve.
-
-    Returns:
-        Optional[Conference]: The conference object if found, None otherwise.
-    """
+    """Retrieve a conference by its link."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         conference_doc = await conferences_collection.find_one({"link": link})
@@ -108,17 +88,7 @@ async def get_conference_by_link(link: str) -> Optional[Conference]:
 
 
 async def add_recording_to_conference(conference_id: str, recording_id: ObjectId) -> tuple[bool, str]:
-    """Add a recording ID to the recordings array of a conference.
-
-    Args:
-        conference_id (str): The ID of the conference to update.
-        recording_id (ObjectId): The ID of the recording to add.
-
-    Returns:
-        tuple[bool, str]: A tuple containing:
-            - Success flag (True if updated, False if failed).
-            - Response message.
-    """
+    """Add a recording ID to the recordings array of a conference."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         result = await conferences_collection.update_one(
@@ -136,30 +106,26 @@ async def add_recording_to_conference(conference_id: str, recording_id: ObjectId
 
 
 async def delete_conference_by_id(conference_id: str) -> tuple[bool, str]:
-    """Delete a conference by its ID from the database.
-
-    Args:
-        conference_id (str): The ID of the conference to delete.
-
-    Returns:
-        tuple[bool, str]: A tuple containing:
-            - Success flag (True if deleted, False if failed).
-            - Response message.
-    """
+    """Delete a conference by its ID from the database and its associated recordings."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         conference = await get_conference_by_id(conference_id)
         if not conference:
             logger.warning(f"Conference with id '{conference_id}' not found for deletion")
-            return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
+            return False, f"Конференция с ID '{conference_id}' не найдена!"
+
+        for recording_id in conference.recordings:
+            success, msg = await delete_recording_from_db(str(recording_id))
+            if not success:
+                logger.warning(f"Failed to delete recording {recording_id} for conference {conference_id}: {msg}")
 
         result = await conferences_collection.delete_one({"_id": ObjectId(conference_id)})
         if result.deleted_count == 0:
             logger.warning(f"Conference with id '{conference_id}' not found during deletion")
             return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
 
-        logger.info(f"Conference with id '{conference_id}' deleted successfully")
-        return True, f"Конференция с ссылкой '{conference.link}' успешно удалена!"
+        logger.info(f"Conference with id '{conference_id}' and its recordings deleted successfully")
+        return True, f"Конференция с ссылкой '{conference.link}' и все связанные записи успешно удалены!"
     except Exception as e:
         logger.error(f"Error deleting conference with id '{conference_id}': {e}")
         return False, f"Ошибка при удалении конференции: {e}"

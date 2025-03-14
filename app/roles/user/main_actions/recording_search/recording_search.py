@@ -292,9 +292,10 @@ async def confirm_delete_conference(callback: CallbackQuery, state: FSMContext):
     conference_id = callback.data.split(":")[1]
     success, response = await delete_conference_by_id(conference_id)
     if success:
-        await callback.message.edit_text(
+        await callback.message.delete()
+        await callback.message.answer(
             text=response,
-            reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
+            reply_markup=main_actions_keyboard,
         )
     else:
         await callback.message.answer(
