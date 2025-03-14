@@ -9,31 +9,24 @@ from app.database.models.conference_DBO import Conference
 from app.roles.user.user_cmds import logger
 
 
-async def add_conference_to_db(link: str, tag_id: ObjectId) -> tuple[bool, str, Optional[ObjectId]]:
-    """Add a new conference to the database.
-
-    Args:
-        link (str): The Google Meet conference link.
-        tag_id (ObjectId): The ID of the tag associated with the conference.
-
-    Returns:
-        tuple[bool, str, Optional[ObjectId]]: A tuple containing:
-            - Success flag (True if added, False if failed).
-            - Response message.
-            - Conference ID (or None if failed).
-    """
-    conference = Conference(link=link, tag_id=tag_id)
-    conferences_collection: AgnosticCollection = db.db["conferences"]
-    try:
-        await conferences_collection.insert_one(conference.model_dump(by_alias=True))
-        logger.info(f"Conference with link '{link}' successfully added with id: {conference.id}")
-        return True, f"Conference with link '{link}' successfully added!", conference.id
-    except DuplicateKeyError:
-        logger.warning(f"Conference with link '{link}' already exists")
-        return False, f"Conference with link '{link}' already exists!", None
-    except Exception as e:
-        logger.error(f"Error adding conference '{link}': {e}")
-        return False, f"Error: {e}", None
+async def add_conference_to_db(
+        meet_link: str,
+        tag_id: ObjectId,
+        timestamp: int,
+        timezone: int,
+        periodicity: Optional[int] = None
+):
+    """Add a new conference to the database."""
+    conference = {
+        "link": meet_link,
+        "tag_id": tag_id,
+        "timestamp": timestamp,
+        "timezone": timezone,
+        "periodicity": periodicity,
+        "recordings": []
+    }
+    result = await db.db.conferences.insert_one(conference)
+    return True, "Конференция успешно добавлена!", str(result.inserted_id)
 
 
 async def get_conference_by_id(conference_id: str) -> Optional[Conference]:

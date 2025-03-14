@@ -1,6 +1,6 @@
 from pydantic import BaseModel, Field
 from bson import ObjectId
-from typing import List
+from typing import List, Optional
 import time
 
 
@@ -8,8 +8,10 @@ class Conference(BaseModel):
     id: ObjectId = Field(default_factory=ObjectId, alias="_id")
     tag_id: ObjectId = Field(...)
     link: str = Field(..., min_length=1)
-    timestamp: int = Field(default_factory=lambda: int(time.time()))
+    timestamp: int = Field(default_factory=lambda: int(time.time()))  # Unix timestamp in seconds
     recordings: List[ObjectId] = Field(default_factory=list)
+    timezone: int = Field(...)  # Timezone offset from UTC
+    periodicity: Optional[int] = Field(default=None)  # Periodicity in weeks (1, 2, or None)
 
     class Config:
         arbitrary_types_allowed = True

@@ -188,7 +188,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn] for btn in buttons]) if buttons else InlineKeyboardMarkup(
         inline_keyboard=[])
     keyboard.inline_keyboard.append(
-        [InlineKeyboardButton(text="Назад", callback_data=f"back_to_tag:{conference.tag_id}")]
+        [InlineKeyboardButton(text="Назад", callback_data=f"{Callbacks.back_to_tag_in_search_mode}:{conference.tag_id}")]
     )
 
     await callback.message.edit_text(
@@ -199,8 +199,8 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith("back_to_tag"))
-async def handle_back_to_tag(callback: CallbackQuery, state: FSMContext):
+@user.callback_query(F.data.startswith(Callbacks.back_to_tag_in_search_mode))
+async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMContext):
     """Handle the 'Back' button to return to the list of conferences by tag."""
     tag_id = callback.data.split(":")[1]
     tag = await get_tag_by_id(tag_id)
