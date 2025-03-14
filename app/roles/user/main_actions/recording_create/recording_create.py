@@ -7,7 +7,7 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKe
 from bson import ObjectId
 
 from app.config import labels
-from app.database.conference_db_operations import add_conference_to_db
+from app.database.conference_db_operations import add_conference_to_db, conference_exists_by_link
 from app.database.tag_db_operations import get_tag_by_id
 from app.keyboards import (
     inline_active_tag_list,
@@ -57,6 +57,7 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: тег не найден в базе данных!", show_alert=True)
         return
 
+    print(f"Got tag {tag} in tag processing for conf adding. Found by id {tag_id}")
     await state.update_data(tag_id=tag_id)
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
@@ -97,6 +98,16 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
             reply_markup=main_actions_keyboard,
         )
         await state.clear()
+        return
+
+    # Проверяем, существует ли конференция с такой ссылкой
+    if await conference_exists_by_link(meet_link):
+        await message.answer(
+            text=f"Конференция с ссылкой '{meet_link}' уже существует! Проверьте корректность ссылки и попробуйте снова:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+            ]),
+        )
         return
 
     await state.update_data(meet_link=meet_link)
@@ -272,7 +283,8 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     timestamp = state_data.get("timestamp")
     timezone = state_data.get("timezone")
     recurrence = state_data.get("recurrence")
-    periodicity = state_data.get("periodicity", None)  # None if not recurrent
+    periodicity = state_data.get("periodicity", None)
+    print("Add conf with values", tag_id, meet_link, timestamp, timezone, recurrence, periodicity)
 
     success, response, conference_id = await add_conference_to_db(
         meet_link=meet_link,

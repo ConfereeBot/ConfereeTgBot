@@ -6,7 +6,8 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKeyboardMarkup
 
 from app.config import labels
-from app.database.conference_db_operations import get_conferences_by_tag, get_conference_by_link, get_conference_by_id
+from app.database.conference_db_operations import add_conference_to_db, get_conferences_by_tag, get_conference_by_link, \
+    get_conference_by_id
 from app.database.recording_db_operations import get_recording_by_id
 from app.database.tag_db_operations import get_tag_by_id
 from app.keyboards import (
@@ -172,7 +173,10 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
     timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
-    response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
+    if conference.recordings:
+        response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
+    else:
+        response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     if conference.recordings:
         for recording_id in conference.recordings:

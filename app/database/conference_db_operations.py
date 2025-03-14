@@ -9,6 +9,12 @@ from app.database.models.conference_DBO import Conference
 from app.roles.user.user_cmds import logger
 
 
+async def conference_exists_by_link(meet_link: str) -> bool:
+    """Check if a conference with the given link already exists in the database."""
+    existing_conference = await db.db.conferences.find_one({"link": meet_link})
+    return bool(existing_conference)
+
+
 async def add_conference_to_db(
         meet_link: str,
         tag_id: ObjectId,
@@ -25,8 +31,11 @@ async def add_conference_to_db(
         "periodicity": periodicity,
         "recordings": []
     }
-    result = await db.db.conferences.insert_one(conference)
-    return True, "Конференция успешно добавлена!", str(result.inserted_id)
+    try:
+        result = await db.db.conferences.insert_one(conference)
+        return True, "Конференция успешно добавлена!", str(result.inserted_id)
+    except DuplicateKeyError:
+        return False, f"Конференция с ссылкой '{meet_link}' уже существует!", None
 
 
 async def get_conference_by_id(conference_id: str) -> Optional[Conference]:
