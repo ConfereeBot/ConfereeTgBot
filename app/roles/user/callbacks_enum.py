@@ -1,5 +1,8 @@
 # 39 symbols is the limit for callback name, because ObjectId comes next (and telegram has 64bits callback name limit)
 class Callbacks:
+    confirm_delete_conference = "on_delete_conf_confirm"
+    cancel_delete_conference = "on_cancel_delete_conference"
+    delete_conference_callback = "on_delete_conference"
     back_to_tag_in_create_conference_mode = "back_to_tag_in_create_conf"
     back_to_tag_in_search_mode = "back_to_tag_in_search"
     get_recording_by_link_callback = "get_recording_by_link"

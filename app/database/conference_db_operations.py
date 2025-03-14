@@ -21,8 +21,15 @@ async def add_conference_to_db(
         timestamp: int,
         timezone: int,
         periodicity: Optional[int] = None
-):
-    """Add a new conference to the database."""
+) -> tuple[bool, str]:
+    """
+        Adds a new conference to the database.
+
+        Returns:
+            tuple[bool, str]: A tuple containing:
+                - Success flag (True if inserted, False if failed).
+                - Response message.
+    """
     conference = {
         "link": meet_link,
         "tag_id": tag_id,
@@ -33,9 +40,9 @@ async def add_conference_to_db(
     }
     try:
         result = await db.db.conferences.insert_one(conference)
-        return True, "Конференция успешно добавлена!", str(result.inserted_id)
+        return True, f"Конференция с ссылкой {meet_link} успешно добавлена!"
     except DuplicateKeyError:
-        return False, f"Конференция с ссылкой '{meet_link}' уже существует!", None
+        return False, f"Конференция с ссылкой '{meet_link}' уже существует!"
 
 
 async def get_conference_by_id(conference_id: str) -> Optional[Conference]:
@@ -126,3 +133,33 @@ async def add_recording_to_conference(conference_id: str, recording_id: ObjectId
     except Exception as e:
         logger.error(f"Error updating conference with id '{conference_id}': {e}")
         return False, f"Error: {e}"
+
+
+async def delete_conference_by_id(conference_id: str) -> tuple[bool, str]:
+    """Delete a conference by its ID from the database.
+
+    Args:
+        conference_id (str): The ID of the conference to delete.
+
+    Returns:
+        tuple[bool, str]: A tuple containing:
+            - Success flag (True if deleted, False if failed).
+            - Response message.
+    """
+    conferences_collection: AgnosticCollection = db.db["conferences"]
+    try:
+        conference = await get_conference_by_id(conference_id)
+        if not conference:
+            logger.warning(f"Conference with id '{conference_id}' not found for deletion")
+            return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
+
+        result = await conferences_collection.delete_one({"_id": ObjectId(conference_id)})
+        if result.deleted_count == 0:
+            logger.warning(f"Conference with id '{conference_id}' not found during deletion")
+            return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
+
+        logger.info(f"Conference with id '{conference_id}' deleted successfully")
+        return True, f"Конференция с ссылкой '{conference.link}' успешно удалена!"
+    except Exception as e:
+        logger.error(f"Error deleting conference with id '{conference_id}': {e}")
+        return False, f"Ошибка при удалении конференции: {e}"

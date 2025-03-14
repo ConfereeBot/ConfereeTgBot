@@ -286,7 +286,7 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     periodicity = state_data.get("periodicity", None)
     print("Add conf with values", tag_id, meet_link, timestamp, timezone, recurrence, periodicity)
 
-    success, response, conference_id = await add_conference_to_db(
+    success, response = await add_conference_to_db(
         meet_link=meet_link,
         tag_id=ObjectId(tag_id),
         timestamp=timestamp,
@@ -296,7 +296,7 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
 
     if success:
         await callback.message.answer(
-            text=f"{response}\nID конференции: {conference_id}\nЗаписей пока нет.",
+            text=response,
             reply_markup=main_actions_keyboard,
         )
     else:
