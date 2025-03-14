@@ -1,15 +1,11 @@
-from typing import List
-
-from motor.motor_asyncio import AsyncIOMotorClient
-from app.config.config import MONGODB_URI, DB_NAME
-
 from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
 
+from app.database.conference_db_operations import get_conferences_by_tag, delete_conference_by_id  # Импортируем
+from app.database.database import db
 from app.database.models.tag_DBO import Tag
 from app.roles.user.user_cmds import logger
-from app.database.database import db
 
 
 async def add_tag_to_db(name: str) -> tuple[bool, str]:
@@ -62,17 +58,29 @@ async def update_tag_in_db(tag_id: str, new_name: str) -> tuple[bool, str]:
 
 async def delete_tag_from_db(tag_id: str) -> tuple[bool, str]:
     """
-    Deletes tag from DB by ID.
+    Deletes tag from DB by ID and its associated conferences.
     Returns tuple (isSuccessful, message)
     """
     tags_collection: AgnosticCollection = db.db["tags"]
     try:
-        result = await tags_collection.delete_one({"_id": ObjectId(tag_id)})
-        if result.deleted_count == 0:
+        tag = await get_tag_by_id(tag_id)
+        if not tag:
             logger.warning(f"Тег с id '{tag_id}' не найден")
             return False, f"Тег с id '{tag_id}' не найден!"
-        logger.info(f"Тег с id '{tag_id}' успешно удалён")
-        return True, f"Тег успешно удалён!"
+
+        conferences = await get_conferences_by_tag(tag_id)
+        for conference in conferences:
+            success, msg = await delete_conference_by_id(str(conference.id))
+            if not success:
+                logger.warning(f"Failed to delete conference {conference.id} for tag {tag_id}: {msg}")
+
+        result = await tags_collection.delete_one({"_id": ObjectId(tag_id)})
+        if result.deleted_count == 0:
+            logger.warning(f"Тег с id '{tag_id}' не найден при удалении")
+            return False, f"Тег с id '{tag_id}' не найден!"
+
+        logger.info(f"Тег с id '{tag_id}' и связанные конференции успешно удалены")
+        return True, f"Тег '{tag.name}' и все связанные конференции успешно удалены!"
     except Exception as e:
         logger.error(f"Ошибка при удалении тега с id '{tag_id}': {e}")
         return False, f"Ошибка: {e}"

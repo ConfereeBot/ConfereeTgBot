@@ -16,7 +16,7 @@ async def add_admin_to_db(username: str) -> tuple[bool, str]:
         return True, f"Админ '{username}' успешно добавлен!"
     except DuplicateKeyError:
         logger.warning(f"Админ '{username}' уже существует")
-        return False, f"Админ '{username}' уже существует!"
+        return False, f"Админ '{username}' уже существует! \n\nВведите другой тег для добавление нового админа:"
     except Exception as e:
         logger.error(f"Ошибка при добавлении админа '{username}': {e}")
         return False, f"Ошибка: {e}"
