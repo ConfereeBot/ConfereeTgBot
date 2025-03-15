@@ -1,8 +1,10 @@
 from typing import List
+
 from motor.motor_asyncio import AsyncIOMotorClient
+
 from app.config.config import MONGODB_URI, DB_NAME
 from app.database.models.tag_DBO import Tag
-from app.database.models.admin_DBO import Admin
+from app.database.models.user_DBO import User
 
 
 class Database:
@@ -16,7 +18,7 @@ class Database:
 
     async def setup_indexes(self):
         await self.db["tags"].create_index("name", unique=True)
-        await self.db["admins"].create_index("username", unique=True)
+        await self.db["users"].create_index("telegram_tag", unique=True)
         await self.db["recordings"].create_index("meeting_id")
         await self.db["conferences"].create_index("link", unique=True)
 
@@ -34,11 +36,11 @@ class Database:
             tags.append(Tag(**tag_doc))
         return tags
 
-    async def get_all_admins(self) -> List[Admin]:
-        admins_collection = self.db["admins"]
+    async def get_all_admins(self) -> List[User]:
+        users_collection = self.db["users"]
         admins = []
-        async for admin_doc in admins_collection.find():
-            admins.append(Admin(**admin_doc))
+        async for user_doc in users_collection.find({"role": "admin"}):
+            admins.append(User(**user_doc))
         return admins
 
 
