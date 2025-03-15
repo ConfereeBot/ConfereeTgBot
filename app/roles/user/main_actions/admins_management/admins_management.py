@@ -21,7 +21,8 @@ from app.keyboards import (
     main_actions_keyboard,
 )
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import logger, user
+from app.roles.user.user_cmds import user
+from app.utils.logger import logger
 
 
 class AdminManagementStates(StatesGroup):

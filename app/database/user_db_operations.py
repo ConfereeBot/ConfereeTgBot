@@ -7,7 +7,27 @@ from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
 from app.database.models.user_DBO import User
-from app.roles.user.user_cmds import logger
+from app.utils.logger import logger
+
+
+async def add_user_if_not_exists(telegram_tag: str) -> tuple[bool, str, Optional[User]]:
+    users_collection: AgnosticCollection = db.db["users"]
+    try:
+        existing_user = await users_collection.find_one({"telegram_tag": telegram_tag})
+        if existing_user:
+            logger.info(f"Пользователь '{telegram_tag}' уже существует в БД с id: {existing_user['_id']}")
+            return True, f"Пользователь '{telegram_tag}' уже существует!", User(**existing_user)
+
+        user = User(telegram_tag=telegram_tag, role=Role.USER)
+        await users_collection.insert_one(user.model_dump(by_alias=True))
+        logger.info(f"Новый пользователь '{telegram_tag}' добавлен с id: {user.id}")
+        return True, f"Пользователь '{telegram_tag}' успешно добавлен!", user
+    except DuplicateKeyError:
+        logger.warning(f"Ошибка: дубликат telegram_tag '{telegram_tag}'")
+        return False, f"Ошибка: пользователь '{telegram_tag}' уже существует!", None
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении пользователя '{telegram_tag}': {e}")
+        return False, f"Ошибка: {e}", None
 
 
 async def add_or_update_user_to_admin(telegram_tag: str) -> tuple[bool, str]:

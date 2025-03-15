@@ -6,8 +6,8 @@ from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
 from app.database.models.conference_DBO import Conference
-from app.database.recording_db_operations import delete_recording_from_db  # Импортируем для каскадного удаления
-from app.roles.user.user_cmds import logger
+from app.database.recording_db_operations import delete_recording_from_db
+from app.utils.logger import logger
 
 
 async def conference_exists_by_link(meet_link: str) -> bool:

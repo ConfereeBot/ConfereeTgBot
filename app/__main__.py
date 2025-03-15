@@ -7,7 +7,7 @@ from aiogram.client.default import DefaultBotProperties
 
 from app.database.database import db
 from app.middlewares.logging import LoggingMiddleware
-from app.utils import setup_logger
+from app.utils.logger import setup_logger
 from app.roles.admin.admin import admin
 from app.roles.user.user_cmds import user
 from app.roles.owner.owner import owner

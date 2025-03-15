@@ -20,7 +20,8 @@ from app.keyboards import (
     tag_deletion_confirmation_keyboard,
 )
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import logger, user
+from app.utils.logger import logger
+from app.roles.user.user_cmds import user
 
 
 class TagManagementStates(StatesGroup):
