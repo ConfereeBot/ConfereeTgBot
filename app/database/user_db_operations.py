@@ -1,16 +1,17 @@
 from typing import List, Optional
 
 from app.config.roles import Role
+from app.utils.logger import logger
 from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
 from app.database.models.user_DBO import User
-from app.utils.logger import logger
 
 
 async def add_user_if_not_exists(telegram_tag: str) -> tuple[bool, str, Optional[User]]:
+    """Добавляет пользователя в БД, если его ещё нет. Возвращает пользователя."""
     users_collection: AgnosticCollection = db.db["users"]
     try:
         existing_user = await users_collection.find_one({"telegram_tag": telegram_tag})
@@ -30,7 +31,40 @@ async def add_user_if_not_exists(telegram_tag: str) -> tuple[bool, str, Optional
         return False, f"Ошибка: {e}", None
 
 
+async def ensure_owner_role(telegram_tag: str) -> tuple[bool, str]:
+    """Проверяет и устанавливает роль owner для указанного пользователя."""
+    users_collection: AgnosticCollection = db.db["users"]
+    try:
+        existing_user = await users_collection.find_one({"telegram_tag": telegram_tag})
+        if existing_user:
+            if existing_user["role"] == Role.OWNER:
+                logger.info(f"Пользователь '{telegram_tag}' уже имеет роль owner")
+                return True, f"Пользователь '{telegram_tag}' уже имеет роль owner!"
+            result = await users_collection.update_one(
+                {"telegram_tag": telegram_tag},
+                {"$set": {"role": Role.OWNER}}
+            )
+            if result.modified_count > 0:
+                logger.info(f"Роль пользователя '{telegram_tag}' обновлена до owner")
+                return True, f"Роль пользователя '{telegram_tag}' обновлена до owner!"
+            logger.warning(f"Не удалось обновить роль пользователя '{telegram_tag}'")
+            return False, f"Не удалось обновить роль пользователя '{telegram_tag}'!"
+        else:
+            # Если пользователя нет, создаём нового с ролью owner
+            user = User(telegram_tag=telegram_tag, role=Role.OWNER)
+            await users_collection.insert_one(user.model_dump(by_alias=True))
+            logger.info(f"Новый владелец '{telegram_tag}' добавлен с id: {user.id}")
+            return True, f"Владелец '{telegram_tag}' успешно добавлен!"
+    except DuplicateKeyError:
+        logger.warning(f"Ошибка: дубликат telegram_tag '{telegram_tag}'")
+        return False, f"Ошибка: пользователь '{telegram_tag}' уже существует!"
+    except Exception as e:
+        logger.error(f"Ошибка при установке роли owner для '{telegram_tag}': {e}")
+        return False, f"Ошибка: {e}"
+
+
 async def add_or_update_user_to_admin(telegram_tag: str) -> tuple[bool, str]:
+    """Добавляет нового пользователя с ролью admin или обновляет существующего до admin."""
     users_collection: AgnosticCollection = db.db["users"]
     try:
         existing_user = await users_collection.find_one({"telegram_tag": telegram_tag})
@@ -63,6 +97,7 @@ async def add_or_update_user_to_admin(telegram_tag: str) -> tuple[bool, str]:
 
 
 async def get_all_users() -> List[User]:
+    """Получает всех пользователей."""
     users_collection: AgnosticCollection = db.db["users"]
     users = []
     try:
@@ -75,6 +110,7 @@ async def get_all_users() -> List[User]:
 
 
 async def get_admins() -> List[User]:
+    """Получает всех пользователей с ролью admin."""
     users_collection: AgnosticCollection = db.db["users"]
     admins = []
     try:
@@ -87,6 +123,7 @@ async def get_admins() -> List[User]:
 
 
 async def get_user_by_id(user_id: str) -> Optional[User]:
+    """Получает пользователя по ID."""
     users_collection: AgnosticCollection = db.db["users"]
     try:
         user_doc = await users_collection.find_one({"_id": ObjectId(user_id)})
@@ -100,6 +137,7 @@ async def get_user_by_id(user_id: str) -> Optional[User]:
 
 
 async def get_user_by_telegram_tag(telegram_tag: str) -> Optional[User]:
+    """Получает пользователя по telegram_tag."""
     users_collection: AgnosticCollection = db.db["users"]
     try:
         user_doc = await users_collection.find_one({"telegram_tag": telegram_tag})
@@ -113,6 +151,7 @@ async def get_user_by_telegram_tag(telegram_tag: str) -> Optional[User]:
 
 
 async def demote_admin_to_user(user_id: str) -> tuple[bool, str]:
+    """Понижает админа до роли user."""
     users_collection: AgnosticCollection = db.db["users"]
     try:
         user = await get_user_by_id(user_id)

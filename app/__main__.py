@@ -5,7 +5,9 @@ from tomllib import load
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 
+from app.config.config import OWNERS
 from app.database.database import db
+from app.database.user_db_operations import ensure_owner_role
 from app.middlewares.logging import LoggingMiddleware
 from app.utils.logger import setup_logger
 from app.roles.admin.admin import admin
@@ -25,13 +27,22 @@ import app.roles.user.main_actions.shared_callbacks
 logger = setup_logger(__name__)
 
 
+async def ensure_owners_in_db():
+    """Проверяет и устанавливает роль owner для пользователей из OWNERS."""
+    for owner_tag in OWNERS:
+        success, response = await ensure_owner_role(owner_tag)
+        if success:
+            logger.info(response)
+        else:
+            logger.error(response)
+
+
 async def main():
     dp = Dispatcher()
     dp.include_routers(user, admin, owner)
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(LoggingMiddleware())
 
-    # logger.info(user.)
     logger.info(f"User router message handlers: {user.message.handlers}")
     logger.info(f"User router callback handlers: {user.callback_query.handlers}")
 
@@ -41,9 +52,10 @@ async def main():
     )
 
     logger.info("Старт бота")
-    await db.ping()  # check db connectivity
-    await db.setup_indexes()  # setup db indexes
-    await dp.start_polling(bot)  # start bot
+    await db.ping()  # Проверка подключения к БД
+    await db.setup_indexes()  # Настройка индексов
+    await ensure_owners_in_db()  # Проверка и установка владельцев
+    await dp.start_polling(bot)  # Запуск бота
 
 
 def get_version():
