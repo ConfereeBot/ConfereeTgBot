@@ -8,9 +8,7 @@ from app.config import messages as msg
 from app.config.roles import Role
 from app.database.user_db_operations import add_user_if_not_exists
 from app.filters import RoleFilter
-from app.keyboards import (
-    main_actions_keyboard as main_keyboard,
-)
+from app.keyboards import main_actions_keyboard
 from app.utils.logger import logger
 
 user = Router()
@@ -28,12 +26,12 @@ async def cmd_start(message: Message):
         logger.error(f"Ошибка при добавлении пользователя '{telegram_tag}': {response}")
         await message.answer(
             text=f"Ошибка при регистрации: {response}",
-            reply_markup=main_keyboard
+            reply_markup=main_actions_keyboard(user.role)
         )
         return
 
     await message.answer_photo(
         photo=FSInputFile(os.path.join(os.getcwd(), "app", "config", "images", "logo.webp")),
         caption=msg.START.format(name=message.from_user.first_name),
-        reply_markup=main_keyboard
+        reply_markup=main_actions_keyboard(user.role)
     )

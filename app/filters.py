@@ -1,33 +1,42 @@
 from aiogram.filters import Filter
-from aiogram.types import Message
+from aiogram.types import Message, CallbackQuery
 
 from app.config.roles import Role
-from app.utils.is_owner import is_owner
+from app.database.user_db_operations import get_user_by_telegram_tag
+from app.utils.logger import logger
 
 
 class RoleFilter(Filter):
-    """Фильтрация сообщений по роли.
+    """Фильтрация сообщений и коллбэков по роли.
 
     Args:
-        role (Role): Роль.
+        role (Role): Минимальная роль, необходимая для обработки.
     """
 
     def __init__(self, role: Role):
         self.role = role
 
-    async def __call__(self, message: Message) -> bool:
-        """Фильтрация роли.
+    async def __call__(self, obj: Message | CallbackQuery) -> bool:
+        """Фильтрация по роли пользователя.
 
         Args:
-            message (Message): Объект сообщения.
+            obj (Message | CallbackQuery): Объект сообщения или коллбэка.
 
         Returns:
-            bool: Доступность для заданной роли.
+            bool: True, если роль пользователя >= требуемой роли, иначе False.
         """
+        if isinstance(obj, Message):
+            user = obj.from_user
+        elif isinstance(obj, CallbackQuery):
+            user = obj.from_user
+        else:
+            return False
 
-        if is_owner(str(message.from_user.id)) and self.role >= Role.ADMIN:
-            return True
+        telegram_tag = f"@{user.username}" if user.username else f"@{user.id}"
 
-        return True
-        # user = await get_user()
-        # return user.role == self.role
+        db_user = await get_user_by_telegram_tag(telegram_tag)
+        if not db_user:
+            logger.warning(f"Пользователь с тегом '{telegram_tag}' не найден в БД")
+            return False
+
+        return db_user.role >= self.role
