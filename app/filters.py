@@ -33,10 +33,16 @@ class RoleFilter(Filter):
             return False
 
         telegram_tag = f"@{user.username}" if user.username else f"@{user.id}"
-
         db_user = await get_user_by_telegram_tag(telegram_tag)
         if not db_user:
             logger.warning(f"Пользователь с тегом '{telegram_tag}' не найден в БД")
             return False
 
-        return db_user.role >= self.role
+        # Преобразуем строку из базы в Role
+        try:
+            user_role = Role(db_user.role)
+        except ValueError:
+            logger.error(f"Некорректная роль '{db_user.role}' для пользователя '{telegram_tag}'")
+            return False
+
+        return user_role >= self.role
