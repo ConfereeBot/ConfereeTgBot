@@ -7,20 +7,26 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 
 from app.config import labels
+from app.config.roles import Role
 from app.database.database import db
 from app.roles.user.callbacks_enum import Callbacks
 
-main_actions_keyboard = ReplyKeyboardMarkup(
-    keyboard=[
+
+def main_actions_keyboard(user_role: Role) -> ReplyKeyboardMarkup:
+    """Создаёт основную клавиатуру в зависимости от роли пользователя."""
+    buttons = [
         [KeyboardButton(text=labels.GET_RECORD), KeyboardButton(text=labels.RECORD)],
-        [
-            KeyboardButton(text=labels.MANAGE_TAGS),
-            KeyboardButton(text=labels.MANAGE_ADMINS),
-        ],
-    ],
-    resize_keyboard=True,
-    input_field_placeholder=labels.CHOOSE_ACTION,
-)
+        [KeyboardButton(text=labels.MANAGE_TAGS)],
+    ]
+    if user_role >= Role.ADMIN:  # Показываем "Управление админами" только для admin и owner
+        buttons.append([KeyboardButton(text=labels.MANAGE_ADMINS)])
+
+    return ReplyKeyboardMarkup(
+        keyboard=buttons,
+        resize_keyboard=True,
+        input_field_placeholder=labels.CHOOSE_ACTION,
+    )
+
 
 choose_recordings_search_method_keyboard = InlineKeyboardMarkup(
     inline_keyboard=[
