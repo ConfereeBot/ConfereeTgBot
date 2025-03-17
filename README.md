@@ -7,4 +7,4 @@ Tg bot for managing GMeetBot service
 3. `git clone https://github.com/ConfereeBot/ConfereeTgBot.git`
 4. `poetry install`
 5. `pre-commit install`
-6. `docker-compose up --build`
+6. `docker compose up --build`
