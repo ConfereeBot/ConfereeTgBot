@@ -16,11 +16,12 @@ def main_actions_keyboard(user_role: Role) -> ReplyKeyboardMarkup:
     """Создаёт основную клавиатуру в зависимости от роли пользователя."""
     buttons = [
         [KeyboardButton(text=labels.GET_RECORD), KeyboardButton(text=labels.RECORD)],
+        []
     ]
     if user_role >= Role.ADMIN:  # "Управление тегами" для admin и owner
-        buttons.append([KeyboardButton(text=labels.MANAGE_TAGS)])
+        buttons[1].append(KeyboardButton(text=labels.MANAGE_TAGS))
     if user_role == Role.OWNER:  # "Управление админами" только для owner
-        buttons.append([KeyboardButton(text=labels.MANAGE_ADMINS)])
+        buttons[1].append(KeyboardButton(text=labels.MANAGE_ADMINS))
 
     return ReplyKeyboardMarkup(
         keyboard=buttons,

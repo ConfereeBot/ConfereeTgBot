@@ -14,15 +14,14 @@ from app.roles.admin.admin import admin
 from app.roles.user.user_cmds import user
 from app.roles.owner.owner import owner
 
-import app.roles.user.callbacks_enum
-import app.roles.user.main_actions.tags_management.handlers.tags_create
-import app.roles.user.main_actions.tags_management.handlers.tags_read
-import app.roles.user.main_actions.tags_management.handlers.tags_update
-import app.roles.user.main_actions.tags_management.handlers.tags_delete
-import app.roles.user.main_actions.recording_search.recording_search
-import app.roles.user.main_actions.recording_create.recording_create
-import app.roles.user.main_actions.admins_management.admins_management
-import app.roles.user.main_actions.shared_callbacks
+from app.roles.admin.tags_management.handlers import tags_create
+from app.roles.admin.tags_management.handlers import tags_read
+from app.roles.admin.tags_management.handlers import tags_update
+from app.roles.admin.tags_management.handlers import tags_delete
+from app.roles.owner.admins_management import admins_management
+from app.roles.user.main_actions import shared_callbacks
+from app.roles.user.main_actions.recording_search import recording_search
+from app.roles.user.main_actions.recording_create import recording_create
 
 logger = setup_logger(__name__)
 

@@ -26,7 +26,7 @@ async def cmd_start(message: Message):
         logger.error(f"Ошибка при добавлении пользователя '{telegram_tag}': {response}")
         await message.answer(
             text=f"Ошибка при регистрации: {response}",
-            reply_markup=main_actions_keyboard(user.role)
+            reply_markup=main_actions_keyboard(user.role if user else Role.USER)
         )
         return
 

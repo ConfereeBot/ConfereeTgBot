@@ -4,11 +4,13 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
 
 from app.database.tag_db_operations import update_tag_in_db
+from app.database.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
-    inline_single_cancel_button, main_actions_keyboard,
+    inline_single_cancel_button,
+    main_actions_keyboard,
 )
+from app.roles.admin.admin import admin  # Импортируем роутер admin
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user
 
 
 class TagEditingStates(StatesGroup):
@@ -24,9 +26,23 @@ async def on_edit_tag_clicked(callback: CallbackQuery, state: FSMContext, tag_id
     await callback.answer()
 
 
-@user.message(TagEditingStates.waiting_for_new_name)
+@admin.callback_query(F.data.startswith(Callbacks.tag_edit_callback))
+async def on_tag_edit_callback(callback: CallbackQuery, state: FSMContext):
+    try:
+        tag_id = callback.data.split(":")[1]
+    except IndexError:
+        await callback.answer("Ошибка: тег не выбран!", show_alert=True)
+        return
+    await on_edit_tag_clicked(callback, state, tag_id)
+
+
+@admin.message(TagEditingStates.waiting_for_new_name)
 async def process_tag_edit(message: Message, state: FSMContext):
     new_name = message.text.strip()
+    telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
+    user = await get_user_by_telegram_tag(telegram_tag)
+    if not user:
+        return
     if len(new_name) > 32:
         await message.answer(
             text="Новое имя слишком длинное! Максимум 32 символа. \nВведите новое имя:",
@@ -43,7 +59,7 @@ async def process_tag_edit(message: Message, state: FSMContext):
     if success:
         await message.answer(
             text=response,
-            reply_markup=main_actions_keyboard
+            reply_markup=main_actions_keyboard(user.role)
         )
         await state.clear()
     else:
@@ -51,13 +67,3 @@ async def process_tag_edit(message: Message, state: FSMContext):
             text=response,
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_tag_naming_callback)
         )
-
-
-@user.callback_query(F.data.startswith(Callbacks.tag_edit_callback))
-async def on_tag_edit_callback(callback: CallbackQuery, state: FSMContext):
-    try:
-        tag_id = callback.data.split(":")[1]  # Извлекаем tag_id из "on_tag_edit_callback:tag_id"
-    except IndexError:
-        await callback.answer("Ошибка: тег не выбран!", show_alert=True)
-        return
-    await on_edit_tag_clicked(callback, state, tag_id)
