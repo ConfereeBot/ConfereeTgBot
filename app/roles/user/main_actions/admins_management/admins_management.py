@@ -9,6 +9,7 @@ from aiogram.types import (
 )
 
 from app.config import labels
+from app.config.config import OWNERS
 from app.database.admin_db_operations import (
     add_admin_to_db,
     delete_admin_from_db,
@@ -80,6 +81,12 @@ async def process_admin_username(message: Message, state: FSMContext):
             reply_markup=await inline_single_cancel_button(
                 Callbacks.cancel_primary_action_callback
             ),
+        )
+        return
+    if username in OWNERS:
+        await message.answer(
+            text=f"Админ '{username}' не может быть добавлен, так как он уже является владельцем!",
+            reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback)
         )
         return
     success, response = await add_admin_to_db(username)
