@@ -2,6 +2,8 @@ import logging
 import os
 from logging.handlers import RotatingFileHandler
 
+# from app.utils import setup_logger
+
 log_dir = "./logs"
 os.makedirs(log_dir, exist_ok=True)
 log_filepath = os.path.join(log_dir, "conferee_tg_bot.log")
@@ -38,3 +40,6 @@ def setup_logger(logger_name):
     logging.getLogger("pymongo.topology").setLevel(logging.INFO)
 
     return logger
+
+
+logger = setup_logger(__name__)
