@@ -16,7 +16,7 @@ from app.keyboards import (
     main_actions_keyboard,
 )
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user
+from app.roles.admin.admin import admin
 from app.utils.logger import logger
 
 
@@ -29,7 +29,7 @@ class RecordingCreateStates(StatesGroup):
     waiting_for_periodicity = State()
 
 
-@user.message(F.text == labels.RECORD)
+@admin.message(F.text == labels.RECORD)
 async def start_recording(message: Message, state: FSMContext):
     logger.info("start_recording_call")
     await message.answer(
@@ -44,7 +44,7 @@ async def start_recording(message: Message, state: FSMContext):
     await state.set_state(RecordingCreateStates.waiting_for_tag)
 
 
-@user.callback_query(F.data.startswith(Callbacks.tag_clicked_in_recording_mode_callback))
+@admin.callback_query(F.data.startswith(Callbacks.tag_clicked_in_recording_mode_callback))
 async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
     try:
         tag_id = callback.data.split(":")[1]
@@ -69,7 +69,7 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.back_to_tag_in_create_conference_mode,
+@admin.callback_query(F.data == Callbacks.back_to_tag_in_create_conference_mode,
                       RecordingCreateStates.waiting_for_meet_link)
 async def back_to_tag_from_link(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
@@ -85,7 +85,7 @@ async def back_to_tag_from_link(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_meet_link)
+@admin.message(RecordingCreateStates.waiting_for_meet_link)
 async def process_meet_link_for_recording(message: Message, state: FSMContext):
     meet_link = message.text.strip()
     state_data = await state.get_data()
@@ -129,7 +129,7 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
 
 
-@user.callback_query(F.data == "back_to_link", RecordingCreateStates.waiting_for_timezone)
+@admin.callback_query(F.data == "back_to_link", RecordingCreateStates.waiting_for_timezone)
 async def back_to_link_from_timezone(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
@@ -141,7 +141,7 @@ async def back_to_link_from_timezone(callback: CallbackQuery, state: FSMContext)
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_timezone)
+@admin.message(RecordingCreateStates.waiting_for_timezone)
 async def process_timezone(message: Message, state: FSMContext):
     timezone_str = message.text.strip()
     telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
@@ -171,7 +171,7 @@ async def process_timezone(message: Message, state: FSMContext):
     await state.set_state(RecordingCreateStates.waiting_for_start_date)
 
 
-@user.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_start_date)
+@admin.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_start_date)
 async def back_to_timezone_from_date(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
@@ -183,7 +183,7 @@ async def back_to_timezone_from_date(callback: CallbackQuery, state: FSMContext)
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_start_date)
+@admin.message(RecordingCreateStates.waiting_for_start_date)
 async def process_start_date(message: Message, state: FSMContext):
     start_date_str = message.text.strip()
     state_data = await state.get_data()
@@ -228,7 +228,7 @@ async def process_start_date(message: Message, state: FSMContext):
     await state.set_state(RecordingCreateStates.waiting_for_recurrence)
 
 
-@user.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_recurrence)
+@admin.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_recurrence)
 async def back_to_timezone_from_recurrence(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
@@ -240,7 +240,7 @@ async def back_to_timezone_from_recurrence(callback: CallbackQuery, state: FSMCo
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith("recurrence_"), RecordingCreateStates.waiting_for_recurrence)
+@admin.callback_query(F.data.startswith("recurrence_"), RecordingCreateStates.waiting_for_recurrence)
 async def process_recurrence(callback: CallbackQuery, state: FSMContext):
     recurrence = callback.data == "recurrence_yes"
     await state.update_data(recurrence=recurrence)
@@ -260,7 +260,7 @@ async def process_recurrence(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data == "back_to_date", RecordingCreateStates.waiting_for_periodicity)
+@admin.callback_query(F.data == "back_to_date", RecordingCreateStates.waiting_for_periodicity)
 async def back_to_date_from_periodicity(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Это регулярная встреча?",
@@ -274,7 +274,7 @@ async def back_to_date_from_periodicity(callback: CallbackQuery, state: FSMConte
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith("period_"), RecordingCreateStates.waiting_for_periodicity)
+@admin.callback_query(F.data.startswith("period_"), RecordingCreateStates.waiting_for_periodicity)
 async def process_periodicity(callback: CallbackQuery, state: FSMContext):
     periodicity = int(callback.data.split("_")[1])
     await state.update_data(periodicity=periodicity)
@@ -319,7 +319,7 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     await state.clear()
 
 
-@user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
+@admin.callback_query(F.data == Callbacks.cancel_primary_action_callback)
 async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext):
     telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
     user = await get_user_by_telegram_tag(telegram_tag)

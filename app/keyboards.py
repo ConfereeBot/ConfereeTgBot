@@ -15,12 +15,13 @@ from app.roles.user.callbacks_enum import Callbacks
 def main_actions_keyboard(user_role: Role) -> ReplyKeyboardMarkup:
     """Создаёт основную клавиатуру в зависимости от роли пользователя."""
     buttons = [
-        [KeyboardButton(text=labels.GET_RECORD), KeyboardButton(text=labels.RECORD)],
+        [KeyboardButton(text=labels.GET_RECORD)],
         []
     ]
-    if user_role >= Role.ADMIN:  # "Управление тегами" для admin и owner
+    if user_role >= Role.ADMIN:  # Управление тегами и записями для admin и owner
+        buttons[0].append(KeyboardButton(text=labels.RECORD))
         buttons[1].append(KeyboardButton(text=labels.MANAGE_TAGS))
-    if user_role == Role.OWNER:  # "Управление админами" только для owner
+    if user_role == Role.OWNER:  # Управление админами только для owner
         buttons[1].append(KeyboardButton(text=labels.MANAGE_ADMINS))
 
     return ReplyKeyboardMarkup(
@@ -150,7 +151,7 @@ async def inline_admin_list(on_cancel_clicked_callback: str) -> InlineKeyboardMa
     for admin in admins:
         print(f"Admin data: {admin}")
         admin_list_keyboard.add(
-            InlineKeyboardButton(text=admin.telegram_tag, callback_data=f"admin_clicked:{admin.id}")
+            InlineKeyboardButton(text=admin.telegram_id, callback_data=f"admin_clicked:{admin.id}")
         )
     admin_list_keyboard.add(
         InlineKeyboardButton(text=labels.ADD_ADMIN, callback_data=Callbacks.add_admin_callback)
