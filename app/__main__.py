@@ -7,20 +7,19 @@ from aiogram.client.default import DefaultBotProperties
 
 import app.rabbitmq as mq
 import app.roles.user.callbacks_enum
-import app.roles.user.main_actions.admins_management.admins_management
+import app.roles.owner.admins_management.admins_management
 import app.roles.user.main_actions.recording_create.recording_create
 import app.roles.user.main_actions.recording_search.recording_search
 import app.roles.user.main_actions.shared_callbacks
-import app.roles.user.main_actions.tags_management.handlers.tags_create
-import app.roles.user.main_actions.tags_management.handlers.tags_delete
-import app.roles.user.main_actions.tags_management.handlers.tags_read
-import app.roles.user.main_actions.tags_management.handlers.tags_update
+import app.roles.admin.tags_management.handlers.tags_create
+import app.roles.admin.tags_management.handlers.tags_delete
+import app.roles.admin.tags_management.handlers.tags_read
+import app.roles.admin.tags_management.handlers.tags_update
 from app.database.database import db
 from app.middlewares.logging import LoggingMiddleware
 from app.roles.admin.admin import admin
 from app.roles.owner.owner import owner
 from app.roles.user.user_cmds import user
-from app.utils import setup_logger
 from app.config.config import OWNERS
 from app.database.database import db
 from app.database.user_db_operations import ensure_owner_role
