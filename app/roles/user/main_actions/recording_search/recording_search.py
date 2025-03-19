@@ -21,9 +21,10 @@ from app.keyboards import (
     inline_single_cancel_button,
     main_actions_keyboard,
 )
+from app.rabbitmq.func import decline_task
 from app.roles.admin.admin import admin  # Импортируем admin для удаления
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user
+from app.roles.user.user_cmds import user_router
 from app.utils.logger import logger
 
 
@@ -33,7 +34,7 @@ class RecordingSearchStates(StatesGroup):
     confirming_conference_deletion = State()
 
 
-@user.message(F.text == labels.GET_RECORD)
+@user_router.message(F.text == labels.GET_RECORD)
 async def get_recording(message: Message):
     logger.info("get_recordings_call")
     await message.answer(
@@ -42,7 +43,7 @@ async def get_recording(message: Message):
     )
 
 
-@user.callback_query(F.data == Callbacks.get_recording_by_tag_callback)
+@user_router.callback_query(F.data == Callbacks.get_recording_by_tag_callback)
 async def get_recording_by_tag(callback: CallbackQuery):
     await callback.answer("")
     await callback.message.edit_text(
@@ -56,7 +57,7 @@ async def get_recording_by_tag(callback: CallbackQuery):
     )
 
 
-@user.callback_query(F.data.startswith(Callbacks.tag_clicked_in_search_mode_callback))
+@user_router.callback_query(F.data.startswith(Callbacks.tag_clicked_in_search_mode_callback))
 async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
     try:
         tag_id = callback.data.split(":")[1]
@@ -109,7 +110,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.get_recording_by_link_callback)
+@user_router.callback_query(F.data == Callbacks.get_recording_by_link_callback)
 async def start_recording_by_link(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
     await callback.message.edit_text(
@@ -119,7 +120,7 @@ async def start_recording_by_link(callback: CallbackQuery, state: FSMContext):
     await state.set_state(RecordingSearchStates.waiting_for_meet_link)
 
 
-@user.message(RecordingSearchStates.waiting_for_meet_link)
+@user_router.message(RecordingSearchStates.waiting_for_meet_link)
 async def process_meet_link(message: Message, state: FSMContext):
     meet_link = message.text.strip()
     telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
@@ -171,7 +172,7 @@ async def process_meet_link(message: Message, state: FSMContext):
     await state.clear()
 
 
-@user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
+@user_router.callback_query(F.data == Callbacks.cancel_primary_action_callback)
 async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext):
     telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
     user = await get_user_by_telegram_tag(telegram_tag)
@@ -186,7 +187,7 @@ async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext)
     await state.clear()
 
 
-@user.callback_query(F.data.startswith("open_conference"))
+@user_router.callback_query(F.data.startswith("open_conference"))
 async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     conference_id = callback.data.split(":")[1]
     conference = await get_conference_by_id(conference_id)
@@ -238,7 +239,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith(Callbacks.back_to_tag_in_search_mode))
+@user_router.callback_query(F.data.startswith(Callbacks.back_to_tag_in_search_mode))
 async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMContext):
     tag_id = callback.data.split(":")[1]
     tag = await get_tag_by_id(tag_id)
@@ -316,6 +317,7 @@ async def confirm_delete_conference(callback: CallbackQuery, state: FSMContext):
     user = await get_user_by_telegram_tag(telegram_tag)
     if not user:
         return
+    await decline_task((await get_conference_by_id(conference_id)).link)
     success, response = await delete_conference_by_id(conference_id)
     if success:
         await callback.message.delete()

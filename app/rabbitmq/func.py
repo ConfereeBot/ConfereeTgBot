@@ -8,6 +8,8 @@ from aiormq.abc import AbstractConnection
 from pamqp.commands import Basic
 
 from . import responses as res
+from ..bot import bot
+from ..database.user_db_operations import get_all_users, get_admins
 
 connection: AbstractConnection = None
 
@@ -65,8 +67,13 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         msg: dict = json.loads(body)
         type = msg.get("type")
         body = msg.get("body")
+        admins = await get_admins()
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
+            for admin in admins:
+                bot.send_message(
+                    chat_id=admin.telegram_id
+                )
             # TODO write user
         elif type == res.Res.STARTED:
             print("Consumer started:", body)

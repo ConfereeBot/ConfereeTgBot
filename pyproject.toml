@@ -15,6 +15,7 @@ aiogram = "^3.18.0"
 motor = "^3.7.0"
 httpx = "^0.28.1"
 aiormq = "^6.8.1"
+pamqp = "^3.2.1"
 
 [tool.poetry.group.dev.dependencies]
 black = "^24.10.0"

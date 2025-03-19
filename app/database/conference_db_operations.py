@@ -125,7 +125,7 @@ async def delete_conference_by_id(conference_id: str) -> tuple[bool, str]:
             return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
 
         logger.info(f"Conference with id '{conference_id}' and its recordings deleted successfully")
-        return True, f"Конференция с ссылкой '{conference.link}' и все связанные записи успешно удалены!"
+        return True, f"Конференция с ссылкой '{conference.link}' и все связанные записи помечены для удаления!"
     except Exception as e:
         logger.error(f"Error deleting conference with id '{conference_id}': {e}")
         return False, f"Ошибка при удалении конференции: {e}"

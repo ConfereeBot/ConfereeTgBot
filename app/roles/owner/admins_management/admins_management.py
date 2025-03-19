@@ -118,7 +118,7 @@ async def on_admin_clicked(callback: CallbackQuery):
         print(f"Ошибка: админ не найден с id {user_id}!")
         return
     text = (
-        f"Username админа: {user.telegram_tag}\n"
+        f"Username админа: {user.telegram_id}\n"
         "Админ имеет права на управление тегами (их добавление, изменение, архивацию и удаление)."
     )
     reply_markup = InlineKeyboardMarkup(

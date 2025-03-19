@@ -5,11 +5,11 @@ from aiogram.types import CallbackQuery
 from app.database.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import main_actions_keyboard
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user
+from app.roles.user.user_cmds import user_router
 from app.utils.logger import logger
 
 
-@user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
+@user_router.callback_query(F.data == Callbacks.cancel_primary_action_callback)
 async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext):
     telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
     user = await get_user_by_telegram_tag(telegram_tag)
