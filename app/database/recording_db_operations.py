@@ -5,7 +5,7 @@ from typing import Optional
 
 from app.database.database import db
 from app.database.models.recording_DBO import Recording
-from app.roles.user.user_cmds import logger
+from app.utils.logger import logger
 
 
 async def add_recording_to_db(meeting_id: ObjectId, link: str) -> tuple[bool, str, Optional[ObjectId]]:

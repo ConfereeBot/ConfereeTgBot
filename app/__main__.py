@@ -21,8 +21,35 @@ from app.roles.admin.admin import admin
 from app.roles.owner.owner import owner
 from app.roles.user.user_cmds import user
 from app.utils import setup_logger
+from app.config.config import OWNERS
+from app.database.database import db
+from app.database.user_db_operations import ensure_owner_role
+from app.middlewares.logging import LoggingMiddleware
+from app.utils.logger import setup_logger
+from app.roles.admin.admin import admin
+from app.roles.user.user_cmds import user
+from app.roles.owner.owner import owner
+
+from app.roles.admin.tags_management.handlers import tags_create
+from app.roles.admin.tags_management.handlers import tags_read
+from app.roles.admin.tags_management.handlers import tags_update
+from app.roles.admin.tags_management.handlers import tags_delete
+from app.roles.owner.admins_management import admins_management
+from app.roles.user.main_actions import shared_callbacks
+from app.roles.user.main_actions.recording_search import recording_search
+from app.roles.user.main_actions.recording_create import recording_create
 
 logger = setup_logger(__name__)
+
+
+async def ensure_owners_in_db():
+    """Проверяет и устанавливает роль owner для пользователей из OWNERS."""
+    for owner_tag in OWNERS:
+        success, response = await ensure_owner_role(owner_tag)
+        if success:
+            logger.info(response)
+        else:
+            logger.error(response)
 
 
 async def main():
@@ -31,7 +58,6 @@ async def main():
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(LoggingMiddleware())
 
-    # logger.info(user.)
     logger.info(f"User router message handlers: {user.message.handlers}")
     logger.info(f"User router callback handlers: {user.callback_query.handlers}")
 
@@ -41,6 +67,10 @@ async def main():
     )
 
     logger.info("Старт бота")
+    await db.ping()  # Проверка подключения к БД
+    await db.setup_indexes()  # Настройка индексов
+    await ensure_owners_in_db()  # Проверка и установка владельцев
+    await dp.start_polling(bot)  # Запуск бота
     await db.ping()  # check db connectivity
     await db.setup_indexes()  # setup db indexes
 

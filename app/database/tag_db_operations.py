@@ -5,7 +5,7 @@ from pymongo.errors import DuplicateKeyError
 from app.database.conference_db_operations import get_conferences_by_tag, delete_conference_by_id  # Импортируем
 from app.database.database import db
 from app.database.models.tag_DBO import Tag
-from app.roles.user.user_cmds import logger
+from app.utils.logger import logger
 
 
 async def add_tag_to_db(name: str) -> tuple[bool, str]:
