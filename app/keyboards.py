@@ -151,7 +151,7 @@ async def inline_admin_list(on_cancel_clicked_callback: str) -> InlineKeyboardMa
     for admin in admins:
         print(f"Admin data: {admin}")
         admin_list_keyboard.add(
-            InlineKeyboardButton(text=admin.telegram_id, callback_data=f"admin_clicked:{admin.id}")
+            InlineKeyboardButton(text=admin.telegram_tag, callback_data=f"{Callbacks.on_admin_clicked}:{admin.id}")
         )
     admin_list_keyboard.add(
         InlineKeyboardButton(text=labels.ADD_ADMIN, callback_data=Callbacks.add_admin_callback)

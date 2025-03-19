@@ -2,16 +2,25 @@ import asyncio
 from tomllib import load
 
 from aiogram import Dispatcher
-from app.bot import bot
+
 import app.rabbitmq as mq
+from app.bot import bot
 from app.config.config import OWNERS
 from app.database.database import db
 from app.database.user_db_operations import ensure_owner_role
 from app.middlewares.logging import LoggingMiddleware
-from app.utils.logger import setup_logger
 from app.roles.admin.admin import admin
-from app.roles.user.user_cmds import user_router
 from app.roles.owner.owner import owner
+from app.roles.user.user_cmds import user
+import app.roles.owner.admins_management.admins_management
+import app.roles.admin.recording_create.recording_create
+import app.roles.user.main_actions.recording_search.recording_search
+import app.roles.user.main_actions.shared_callbacks
+import app.roles.admin.tags_management.handlers.tags_create
+import app.roles.admin.tags_management.handlers.tags_delete
+import app.roles.admin.tags_management.handlers.tags_read
+import app.roles.admin.tags_management.handlers.tags_update
+from app.utils.logger import setup_logger
 
 logger = setup_logger(__name__)
 
@@ -28,12 +37,14 @@ async def ensure_owners_in_db():
 
 async def main():
     dp = Dispatcher()
-    dp.include_routers(user_router, admin, owner)
+    dp.include_routers(user, admin, owner)
     dp.callback_query.middleware(LoggingMiddleware())
     dp.message.middleware(LoggingMiddleware())
 
-    logger.info(f"User router message handlers: {user_router.message.handlers}")
-    logger.info(f"User router callback handlers: {user_router.callback_query.handlers}")
+    logger.info(f"User router message handlers: {user.message.handlers}")
+    logger.info(f"User router callback handlers: {user.callback_query.handlers}")
+    logger.info(f"Owner router message handlers: {owner.message.handlers}")
+    logger.info(f"Owner router callback handlers: {owner.callback_query.handlers}")
 
     logger.info("Старт бота")
     await db.ping()  # Проверка подключения к БД

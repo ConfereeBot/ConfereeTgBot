@@ -11,17 +11,15 @@ from aiogram.types import (
 from app.config import labels
 from app.config.config import OWNERS
 from app.database.user_db_operations import (
-    add_or_update_user_to_admin,
+    get_user_by_telegram_tag, get_user_by_telegram_id, add_or_update_user_to_admin, get_user_by_id,
     demote_admin_to_user,
-    get_user_by_id,
-    get_user_by_telegram_tag, get_user_by_telegram_id,
 )
 from app.keyboards import (
     inline_admin_list,
     inline_single_cancel_button,
     main_actions_keyboard,
 )
-from app.roles.owner.owner import owner  # Импортируем роутер owner
+from app.roles.owner.owner import owner
 from app.roles.user.callbacks_enum import Callbacks
 from app.utils.logger import logger
 
@@ -105,7 +103,7 @@ async def process_admin_username(message: Message, state: FSMContext):
     await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
 
 
-@owner.callback_query(F.data.startswith("admin_clicked"))
+@owner.callback_query(F.data.startswith(Callbacks.on_admin_clicked))
 async def on_admin_clicked(callback: CallbackQuery):
     try:
         user_id = callback.data.split(":")[1]

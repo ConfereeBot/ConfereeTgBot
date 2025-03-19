@@ -10,10 +10,10 @@ from app.database.user_db_operations import handle_user_on_start
 from app.keyboards import main_actions_keyboard
 from app.utils.logger import logger
 
-user_router = Router()
+user = Router()
 
 
-@user_router.message(CommandStart())
+@user.message(CommandStart())
 async def cmd_start(message: Message):
     logger.info("cmd_start")
     telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
