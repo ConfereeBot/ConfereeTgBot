@@ -15,8 +15,8 @@ from app.keyboards import (
     inline_single_cancel_button,
     main_actions_keyboard,
 )
-from app.roles.user.callbacks_enum import Callbacks
 from app.roles.admin.admin import admin
+from app.roles.user.callbacks_enum import Callbacks
 from app.utils.logger import logger
 
 
@@ -57,7 +57,7 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: тег не найден в базе данных!", show_alert=True)
         return
 
-    print(f"Got tag {tag} in tag processing for conf adding. Found by id {tag_id}")
+    logger.info(f"Выбран тег {tag.name} с id {tag_id} для создания конференции")
     await state.update_data(tag_id=tag_id)
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
@@ -163,7 +163,7 @@ async def process_timezone(message: Message, state: FSMContext):
 
     await state.update_data(timezone=timezone)
     await message.answer(
-        text="Введите дату начала конференции в формате 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ:СЕКУНДЫ' (например, 15.03.2025 14:30:00):",
+        text="Введите дату и время начала конференции в формате 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
         ]),
@@ -194,8 +194,11 @@ async def process_start_date(message: Message, state: FSMContext):
         return
 
     try:
-        start_date = datetime.strptime(start_date_str, "%d.%m.%Y %H:%M:%S")
-        timestamp = int(start_date.timestamp()) - (timezone * 3600)
+        # Парсим дату и время без секунд, добавляем ':00' автоматически
+        start_date = datetime.strptime(start_date_str, "%d.%m.%Y %H:%M")
+        # Устанавливаем секунды в 00
+        start_date = start_date.replace(second=0)
+        timestamp = int(start_date.timestamp()) - (timezone * 3600)  # Корректируем на тайм-зону
         current_time = int(datetime.now().timestamp())
 
         if timestamp < current_time:
@@ -209,7 +212,7 @@ async def process_start_date(message: Message, state: FSMContext):
 
     except ValueError:
         await message.answer(
-            text="Ошибка: неверный формат даты! Используйте 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ:СЕКУНДЫ' (например, 15.03.2025 14:30:00). Повторите ввод:",
+            text="Ошибка: неверный формат даты! Используйте 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30). Повторите ввод:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
             ]),
@@ -295,7 +298,8 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     if not user:
         return
 
-    print("Add conf with values", tag_id, meet_link, timestamp, timezone, recurrence, periodicity)
+    logger.info(
+        f"Добавление конференции: tag_id={tag_id}, link={meet_link}, timestamp={timestamp}, timezone={timezone}, periodicity={periodicity if recurrence else None}")
 
     success, response = await add_conference_to_db(
         meet_link=meet_link,

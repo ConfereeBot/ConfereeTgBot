@@ -11,7 +11,7 @@ from . import responses as res
 from ..bot import bot
 from ..database.user_db_operations import get_all_users, get_admins
 
-connection: AbstractConnection = None
+connection: AbstractConnection | None = None
 
 
 async def get_connection() -> AbstractConnection:
