@@ -15,6 +15,7 @@ from app.keyboards import (
     inline_single_cancel_button,
     main_actions_keyboard,
 )
+from app.rabbitmq.func import schedule_task
 from app.roles.admin.admin import admin
 from app.roles.user.callbacks_enum import Callbacks
 from app.utils.logger import logger
@@ -308,8 +309,10 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
         timezone=timezone,
         periodicity=periodicity if recurrence else None
     )
-
     if success:
+        meet_start_timestamp = int(timestamp.timestamp()) - (timezone * 3600)  # Корректируем на тайм-зону
+        current_time = int(datetime.now().timestamp())
+        await schedule_task(meet_link, meet_start_timestamp - current_time)
         await callback.message.delete()
         await callback.message.answer(
             text=response,

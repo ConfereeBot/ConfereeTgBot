@@ -9,7 +9,11 @@ from pamqp.commands import Basic
 
 from . import responses as res
 from ..bot import bot
-from ..database.user_db_operations import get_all_users, get_admins
+from ..database.conference_db_operations import get_conference_by_link, add_recording_to_conference
+from ..database.models.conference_DBO import Conference
+from ..database.recording_db_operations import create_recording_by_conference_link
+from ..database.user_db_operations import get_all_users, get_admins, get_user_by_id
+from ..utils.logger import logger
 
 connection: AbstractConnection | None = None
 
@@ -67,30 +71,106 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         msg: dict = json.loads(body)
         type = msg.get("type")
         body = msg.get("body")
-        admins = await get_admins()
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
-            for admin in admins:
-                bot.send_message(
-                    chat_id=admin.telegram_id
-                )
-            # TODO write user
+            await message_to_all_admins(
+                "⚠️ Ошибка записи \n\n "
+                f"Ошибка записи конференции {body}: бот занят записью другой конференции "
+                "и не может записать указанную."
+            )
         elif type == res.Res.STARTED:
             print("Consumer started:", body)
+            await message_to_all_admins(
+                "🎦 Запись начата \n\n "
+                f"Запись конференции {body} начата."
+            )
         elif type == res.Res.SUCCEDED:
             filepath = msg.get("filepath")
-            print("Consumer successfuly finished recording:", body, filepath)
-            filepath = await download_file(filepath)
-            # TODO use filepath
-            # os.remove(filepath)
+            print("Consumer successfully finished recording:", body, filepath)
+            await message_to_all_admins(
+                "✅ Конференция записана успешно \n\n "
+                f"Запись конференции {body} закончена и сохранена."
+            )
+            conference = await get_conference_by_link(body)
+            if conference is not None:
+                success, operation_msg, recording_id = await create_recording_by_conference_link(
+                    conference.link, filepath
+                )
+                if success:
+                    logger.warning(f"Successfully created recording with id {recording_id}: {operation_msg}")
+                    success, operation_msg = await add_recording_to_conference(conference.id, recording_id)
+                    if not success:
+                        logger.warning(f"Error while adding recording with id {recording_id} "
+                                       f"into the conference '{conference}' array: {operation_msg}")
+                    else:
+                        logger.warning(f"Successfully added recording with id {recording_id} "
+                                       f"into the conference '{conference}' array: {operation_msg}")
+                else:
+                    logger.warning(f"Error while creating recording with conference link '{conference.link}' "
+                                   f"and filepath '{filepath}': {operation_msg}")
+            # filepath = await download_file(filepath)
+            # admins = await get_admins()
+            # found_admin = False
+            # for admin in admins:
+            #     if not found_admin:
+            #         if admin.telegram_id is not None:
+            #             found_admin = True
+            #             await bot.send_document(
+            #                 chat_id=admin.telegram_id,
+            #                 document=filepath,
+            #                 caption=f"Запись онлайн-конференции {body}"
+            #             )
+            #     else:
+            #         await bot.send_video(
+            #             chat_id=admin.telegram_id,
+            #             video=filepath,
+            #             caption=f"Запись онлайн-конференции {body}"
+            #         )
+            # # use filepath
+            # # os.remove(filepath)
         elif type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
-            # TODO write user
+            await message_to_all_admins(
+                "⚠️ Ошибка записи \n\n "
+                f"Не удалось записать конференцию {body}, произошла ошибка в процессе записи."
+            )
         elif type == res.Req.SCREENSHOT:
             print("Got screenshot:", body)
             filepath = await download_file(body)
-            # TODO use filepath
-            # os.remove(filepath)
+            meet_link = body
+            conference_of_screenshot = await get_conference_by_link(meet_link)
+            if conference_of_screenshot is not None:
+                try:
+                    requester_id = conference_of_screenshot.users_queue_to_get_screenshot.pop(0)
+                    requester = await get_user_by_id(str(requester_id))
+                    if requester is not None:
+                        await bot.send_photo(
+                            chat_id=requester.telegram_id,
+                            photo=filepath,
+                            caption=f"Запрошенный скриншот конференции {meet_link} готов!"
+                        )
+                except IndexError:
+                    pass
+
+            # TODO ссылка будет приходить иначе
+            conference = await get_conference_by_link(body)
+            if conference is not None:
+                success, operation_msg, recording_id = await create_recording_by_conference_link(
+                    conference.link, filepath
+                )
+                if success:
+                    logger.warning(f"Successfully created recording with id {recording_id}: {operation_msg}")
+                    success, operation_msg = await add_recording_to_conference(conference.id, recording_id)
+                    if not success:
+                        logger.warning(f"Error while adding recording with id {recording_id} "
+                                       f"into the conference '{conference}' array: {operation_msg}")
+                    else:
+                        logger.warning(f"Successfully added recording with id {recording_id} "
+                                       f"into the conference '{conference}' array: {operation_msg}")
+                else:
+                    logger.warning(f"Error while creating recording with conference link '{conference.link}' "
+                                   f"and filepath '{filepath}': {operation_msg}")
+            os.remove(filepath)
         elif type == res.Req.TIME:
             print("Got current recording time:", body)
             # TODO write user
@@ -122,3 +202,13 @@ async def decline_task(link: str):
         if body == link:
             print(f"Task ({link}) canceled.")
             await message.channel.basic_ack(delivery_tag=message.delivery.delivery_tag)
+
+
+async def message_to_all_admins(message: str):
+    admins = await get_admins()
+    for admin in admins:
+        if admin.telegram_id is not None:
+            await bot.send_message(
+                chat_id=admin.telegram_id,
+                message=message
+            )

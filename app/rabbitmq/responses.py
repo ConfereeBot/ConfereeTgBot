@@ -13,5 +13,5 @@ class Req(StrEnum):
     TIME = "time"
 
 
-def prepare(res: Res, body) -> bytes:
+def prepare(res: Req, body) -> bytes:
     return str({"type": res.value, "body": body}).encode()

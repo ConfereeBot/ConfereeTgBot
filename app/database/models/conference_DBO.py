@@ -12,6 +12,7 @@ class Conference(BaseModel):
     recordings: List[ObjectId] = Field(default_factory=list)
     timezone: int = Field(...)  # Timezone offset from UTC
     periodicity: Optional[int] = Field(default=None)  # Periodicity in weeks (1, 2, or None)
+    users_queue_to_get_screenshot: List[ObjectId] = Field(default_factory=list)
 
     class Config:
         arbitrary_types_allowed = True
