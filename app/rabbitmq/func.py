@@ -32,12 +32,12 @@ async def schedule_task(link: str, in_secs: int):
     )
 
 
-async def manage_active_task(command: res.Req):
+async def manage_active_task(command: res.Req, user_id: int):
     print(f"Manage active task: <{command}>")
     connection = await get_connection()
     channel = await connection.channel()
     await channel.basic_publish(
-        body=res.prepare(command, ""),
+        body=res.prepare(command, "", user_id),
         exchange="conferee_direct",
         routing_key="gmeet_manage",
     )
@@ -65,6 +65,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         msg: dict = json.loads(body)
         type = msg.get("type")
         body = msg.get("body")
+        user_id = msg.get("user_id")  # USE USER_ID
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
             # TODO write user
@@ -73,7 +74,6 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         elif type == res.Res.SUCCEDED:
             filepath = msg.get("filepath")
             print("Consumer successfuly finished recording:", body, filepath)
-            filepath = await download_file(filepath)
             # TODO use filepath
             # os.remove(filepath)
         elif type == res.Res.ERROR:
