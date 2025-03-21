@@ -43,9 +43,13 @@ async def manage_active_task(command: res.Req, user_id: int):
     )
 
 
-async def download_file(filepath):
+def get_link(filepath):
     web = os.getenv("WEB_SERVER")
-    url = web + filepath
+    return web + filepath
+
+
+async def download_file(filepath):
+    url = get_link(filepath)
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         if response.status_code != 200:
@@ -66,13 +70,14 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         type = msg.get("type")
         body = msg.get("body")
         user_id = msg.get("user_id")  # USE USER_ID
+        print(user_id)
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
             # TODO write user
         elif type == res.Res.STARTED:
             print("Consumer started:", body)
         elif type == res.Res.SUCCEDED:
-            filepath = msg.get("filepath")
+            filepath = get_link(msg.get("filepath"))
             print("Consumer successfuly finished recording:", body, filepath)
             # TODO use filepath
             # os.remove(filepath)
@@ -80,8 +85,9 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             print("Consumer finished with ERROR:", body)
             # TODO write user
         elif type == res.Req.SCREENSHOT:
-            print("Got screenshot:", body)
-            filepath = await download_file(body)
+            filepath = msg.get("filepath")
+            print("Got screenshot:", filepath)
+            filepath = await download_file(filepath)
             # TODO use filepath
             # os.remove(filepath)
         elif type == res.Req.TIME:
