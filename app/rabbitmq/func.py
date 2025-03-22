@@ -82,9 +82,8 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
         if response_type == res.Res.BUSY:
             print("Consumer is busy:", body)
-            await bot.send_message(
-                chat_id=user_id,
-                text="⚠️ Ошибка записи!\n\n "
+            await message_to_all_admins(
+                message="⚠️ Ошибка записи!\n\n "
                 f"Ошибка записи конференции {body}: бот занят записью другой конференции "
                 "и не может записать указанную."
             )
@@ -148,7 +147,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             await bot.send_message(
                 chat_id=user_id,
                 text=f"✔ Готов ответ на запрос о времени записи конференции {body}:\n\n"
-                     f"Запись ведётся уже {secs_from_rec_start // 60 // 60}ч"
+                     f"Запись ведётся уже {secs_from_rec_start // 60 // 60}ч "
                      f"{(secs_from_rec_start // 60) % 60}м "
                      f"{secs_from_rec_start% 60}с"
             )
