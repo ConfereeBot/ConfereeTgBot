@@ -304,20 +304,12 @@ async def process_screenshot_request(callback: CallbackQuery, state: FSMContext)
     if not user:
         return
 
-    success, message = await add_user_to_screenshot_queue(ObjectId(conference_id), user.id)
-
     await callback.message.delete()
-    if success:
-        await manage_active_task(Req.SCREENSHOT)
-        await callback.message.answer(
-            text="Скриншот запрошен! Он будет отправлен, как только готов.",
-            reply_markup=main_actions_keyboard(user.role)
-        )
-    else:
-        await callback.message.answer(
-            text=message,
-            reply_markup=main_actions_keyboard(user.role)
-        )
+    await manage_active_task(command=Req.SCREENSHOT, user_id=user.telegram_id)
+    await callback.message.answer(
+        text="Скриншот запрошен! Он будет отправлен, как только готов.",
+        reply_markup=main_actions_keyboard(user.role)
+    )
     await state.clear()
     await callback.answer("")
 

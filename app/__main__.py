@@ -80,7 +80,7 @@ if __name__ == "__main__":
 Всё обрабатывай в mq.func.handle_responses, там я написал # TODO для твоего кода
 
 await mq.func.schedule_task("https://meet.google.com/qwe-qwe-qwe", 0)   schedule task in n secs
-await mq.func.manage_active_task(mq.responses.Req.TIME)                 request for current recording time
-await mq.func.manage_active_task(mq.responses.Req.SCREENSHOT)           request for screenshot
+await mq.func.manage_active_task(mq.responses.Req.TIME, user_id: int)                 request for current recording time
+await mq.func.manage_active_task(mq.responses.Req.SCREENSHOT, user_id: int)           request for screenshot
 await mq.func.decline_task("https://meet.google.com/qwe-qwe-qwe")       delete task from schedule
 """

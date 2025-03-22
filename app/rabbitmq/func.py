@@ -75,12 +75,12 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         msg: dict = json.loads(body)
         type = msg.get("type")
         body = msg.get("body")
-        user_id = msg.get("user_id")  # USE USER_ID
-        print(user_id)
+        user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
-            await message_to_all_admins(
-                "⚠️ Ошибка записи \n\n "
+            await bot.send_message(
+                chat_id=user_id,
+                message="⚠️ Ошибка записи \n\n "
                 f"Ошибка записи конференции {body}: бот занят записью другой конференции "
                 "и не может записать указанную."
             )
@@ -91,7 +91,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                 f"Запись конференции {body} начата."
             )
         elif type == res.Res.SUCCEDED:
-            filepath = msg.get("filepath")
+            filepath = get_link(msg.get("filepath"))
             print("Consumer successfully finished recording:", body, filepath)
             await message_to_all_admins(
                 "✅ Конференция записана успешно \n\n "
@@ -99,7 +99,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             )
             conference = await get_conference_by_link(body)
             if conference is not None:
-                success, operation_msg, recording_id = await create_recording_by_conference_link(
+                success, operation_msg, recording_id, recording = await create_recording_by_conference_link(
                     conference.link, filepath
                 )
                 if success:
@@ -109,35 +109,13 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                         logger.warning(f"Error while adding recording with id {recording_id} "
                                        f"into the conference '{conference}' array: {operation_msg}")
                     else:
+                        recording.link = filepath
                         logger.warning(f"Successfully added recording with id {recording_id} "
-                                       f"into the conference '{conference}' array: {operation_msg}")
+                                       f"into the conference '{conference}' array: {operation_msg} "
+                                       f"and the download link {filepath} into recording.")
                 else:
                     logger.warning(f"Error while creating recording with conference link '{conference.link}' "
                                    f"and filepath '{filepath}': {operation_msg}")
-            # filepath = await download_file(filepath)
-            # admins = await get_admins()
-            # found_admin = False
-            # for admin in admins:
-            #     if not found_admin:
-            #         if admin.telegram_id is not None:
-            #             found_admin = True
-            #             await bot.send_document(
-            #                 chat_id=admin.telegram_id,
-            #                 document=filepath,
-            #                 caption=f"Запись онлайн-конференции {body}"
-            #             )
-            #     else:
-            #         await bot.send_video(
-            #             chat_id=admin.telegram_id,
-            #             video=filepath,
-            #             caption=f"Запись онлайн-конференции {body}"
-            #         )
-            # # use filepath
-            # # os.remove(filepath)
-            filepath = get_link(msg.get("filepath"))
-            print("Consumer successfuly finished recording:", body, filepath)
-            # TODO use filepath
-            # os.remove(filepath)
         elif type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
             await message_to_all_admins(
@@ -148,11 +126,18 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             filepath = msg.get("filepath")
             print("Got screenshot:", filepath)
             filepath = await download_file(filepath)
-            # TODO use filepath
-            # os.remove(filepath)
+            await bot.send_photo(
+                chat_id=user_id,
+                photo=filepath,
+                caption=f"✔ Запрошенный скриншот происходящего в конференции {body} готов!"
+            )
+            os.remove(filepath)
         elif type == res.Req.TIME:
             print("Got current recording time:", body)
-            # TODO write user
+            await bot.send_message(
+                chat_id=user_id,
+                text=f"✔ Готов ответ на запрос о времени записи конференции {body}: запись ведётся ?"  # TODO
+            )
 
     except Exception as e:
         print(f"Consumer did not ack task: {body}\n{e}")
