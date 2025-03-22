@@ -313,7 +313,7 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     if success:
         meet_start_timestamp = timestamp
         current_time = int(datetime.now(datetime_timezone.utc).timestamp())
-        logger.info(f"Send {meet_start_timestamp - current_time} into broker ({meet_start_timestamp} - {current_time}")
+        logger.info(f"Send {meet_start_timestamp - current_time}s into broker ({meet_start_timestamp} - {current_time})")
         await schedule_task(meet_link, (meet_start_timestamp - current_time))
         await callback.message.delete()
         await callback.message.answer(

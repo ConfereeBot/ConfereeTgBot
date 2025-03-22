@@ -50,9 +50,6 @@ async def main():
     await db.ping()  # Проверка подключения к БД
     await db.setup_indexes()  # Настройка индексов
     await ensure_owners_in_db()  # Проверка и установка владельцев
-    await dp.start_polling(bot)  # Запуск бота
-    await db.ping()  # check db connectivity
-    await db.setup_indexes()  # setup db indexes
 
     mq_task = asyncio.create_task(mq.func.start_listening())
     bot_task = asyncio.create_task(dp.start_polling(bot))

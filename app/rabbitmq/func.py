@@ -56,14 +56,17 @@ def get_link(filepath):
 
 async def download_file(filepath):
     url = get_link(filepath)
+    logger.info(f"download_file: got url {url} from get_link({filepath})")
     async with httpx.AsyncClient() as client:
+        logger.info("download_file: sending request...")
         response = await client.get(url)
         if response.status_code != 200:
-            print(f"Failed to download, status code: {response.status_code}")
+            logger.info(f"Failed to download, status code: {response.status_code}")
             return None
+        logger.info("download_file: response code is 200, OK!")
         with open(filepath, "wb") as f:
             f.write(response.content)
-        print(f"File downloaded to {filepath}")
+        logger.info(f"File downloaded to {filepath}")
         return filepath
 
 
@@ -73,25 +76,26 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
     await message.channel.basic_ack(delivery_tag=message.delivery.delivery_tag)
     try:
         msg: dict = json.loads(body)
-        type = msg.get("type")
+        response_type = msg.get("type")
         body = msg.get("body")
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
-        if type == res.Res.BUSY:
+        if response_type == res.Res.BUSY:
             print("Consumer is busy:", body)
             await bot.send_message(
                 chat_id=user_id,
-                message="⚠️ Ошибка записи \n\n "
+                text="⚠️ Ошибка записи \n\n "
                 f"Ошибка записи конференции {body}: бот занят записью другой конференции "
                 "и не может записать указанную."
             )
-        elif type == res.Res.STARTED:
+        elif response_type == res.Res.STARTED:
             print("Consumer started:", body)
             await message_to_all_admins(
                 "🎦 Запись начата \n\n "
                 f"Запись конференции {body} начата."
             )
-        elif type == res.Res.SUCCEDED:
+        elif response_type == res.Res.SUCCEDED:
             filepath = get_link(msg.get("filepath"))
+            logger.info(f"Got recording filepath: '{filepath}', the filepath itself in msg is '{msg.get("filepath")}'")
             print("Consumer successfully finished recording:", body, filepath)
             await message_to_all_admins(
                 "✅ Конференция записана успешно \n\n "
@@ -100,7 +104,8 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             conference = await get_conference_by_link(body)
             if conference is not None:
                 success, operation_msg, recording_id, recording = await create_recording_by_conference_link(
-                    conference.link, filepath
+                    conference_link=conference.link,
+                    recording_link=filepath
                 )
                 if success:
                     logger.warning(f"Successfully created recording with id {recording_id}: {operation_msg}")
@@ -116,23 +121,26 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                 else:
                     logger.warning(f"Error while creating recording with conference link '{conference.link}' "
                                    f"and filepath '{filepath}': {operation_msg}")
-        elif type == res.Res.ERROR:
+        elif response_type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
             await message_to_all_admins(
                 "⚠️ Ошибка записи \n\n "
                 f"Не удалось записать конференцию {body}, произошла ошибка в процессе записи."
             )
-        elif type == res.Req.SCREENSHOT:
+        elif response_type == res.Req.SCREENSHOT:
             filepath = msg.get("filepath")
             print("Got screenshot:", filepath)
-            filepath = await download_file(filepath)
+            try:
+                filepath = await download_file(filepath)
+            except Exception as e:
+                logger.warning(f"Exception while downloading file from {filepath}: '{e}'")
             await bot.send_photo(
                 chat_id=user_id,
                 photo=filepath,
                 caption=f"✔ Запрошенный скриншот происходящего в конференции {body} готов!"
             )
             os.remove(filepath)
-        elif type == res.Req.TIME:
+        elif response_type == res.Req.TIME:
             print("Got current recording time:", body)
             secs_from_rec_start = msg.get("filepath")
             await bot.send_message(
@@ -144,7 +152,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             )
 
     except Exception as e:
-        print(f"Consumer did not ack task: {body}\n{e}")
+        print(f"Consumer did not ack task: {body}\n{e}, {type(e)}")
 
 
 async def start_listening():
@@ -178,5 +186,6 @@ async def message_to_all_admins(message: str):
         if admin.telegram_id is not None:
             await bot.send_message(
                 chat_id=admin.telegram_id,
-                message=message
+                text=message,
+                disable_notification=True,
             )
