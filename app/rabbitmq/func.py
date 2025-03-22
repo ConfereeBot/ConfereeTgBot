@@ -134,9 +134,13 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             os.remove(filepath)
         elif type == res.Req.TIME:
             print("Got current recording time:", body)
+            secs_from_rec_start = msg.get("filepath")
             await bot.send_message(
                 chat_id=user_id,
-                text=f"✔ Готов ответ на запрос о времени записи конференции {body}: запись ведётся ?"  # TODO
+                text=f"✔ Готов ответ на запрос о времени записи конференции {body}:\n\n"
+                     f"Запись ведётся уже {secs_from_rec_start // 60 // 60}ч"
+                     f"{(secs_from_rec_start // 60) % 60}м "
+                     f"{secs_from_rec_start% 60}с"
             )
 
     except Exception as e:
