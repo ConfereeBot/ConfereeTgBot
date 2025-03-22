@@ -1,7 +1,5 @@
 from datetime import datetime
 
-from bson import ObjectId
-from app.database.conference_db_operations import delete_conference_by_id
 from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
@@ -9,11 +7,11 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKe
 
 from app.config import labels
 from app.config.roles import Role
+from app.database.conference_db_operations import delete_conference_by_id
 from app.database.conference_db_operations import (
     get_conferences_by_tag,
     get_conference_by_link,
     get_conference_by_id,
-    add_user_to_screenshot_queue,  # Новый импорт
 )
 from app.database.recording_db_operations import get_recording_by_id
 from app.database.tag_db_operations import get_tag_by_id
@@ -36,7 +34,7 @@ class RecordingSearchStates(StatesGroup):
     waiting_for_meet_link = State()
     browsing_conference = State()
     confirming_conference_deletion = State()
-    requesting_screenshot = State()  # Новый статус
+    requesting_screenshot = State()
 
 
 @user.message(F.text == labels.GET_RECORD)
@@ -95,7 +93,6 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
             short_date = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M')
             button_text = f"{i}. {clean_link}, {short_date}"
-            logger.info(f"process_tag_selection: Move conference id {conference.id} next to conferences list callbacks (conference itself={conference})")
             buttons.append(
                 InlineKeyboardButton(
                     text=button_text,
@@ -143,12 +140,19 @@ async def process_meet_link(message: Message, state: FSMContext):
             response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
         else:
             response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
-        buttons = [
-            InlineKeyboardButton(
-                text="Получить скриншот записи",
-                callback_data=f"screenshot:{conference.id}"
-            )
-        ]
+        buttons = []
+        current_time = int(datetime.now().timestamp())
+        if conference.timestamp <= current_time:  # Конференция уже началась
+            buttons.extend([
+                InlineKeyboardButton(
+                    text="Узнать, как долго уже идёт встреча",
+                    callback_data=f"duration:{conference.id}"
+                ),
+                InlineKeyboardButton(
+                    text="Получить скриншот записи",
+                    callback_data=f"screenshot:{conference.id}"
+                )
+            ])
         if conference.recordings:
             for recording_id in conference.recordings:
                 recording = await get_recording_by_id(str(recording_id))
@@ -217,12 +221,19 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
-    buttons = [
-        InlineKeyboardButton(
-            text="Получить скриншот записи",
-            callback_data=f"screenshot:{conference.id}"
-        )
-    ]
+    buttons = []
+    current_time = int(datetime.now().timestamp())
+    if conference.timestamp <= current_time:  # Конференция уже началась
+        buttons.extend([
+            InlineKeyboardButton(
+                text="Узнать, как долго уже идёт встреча",
+                callback_data=f"duration:{conference.id}"
+            ),
+            InlineKeyboardButton(
+                text="Получить скриншот записи",
+                callback_data=f"screenshot:{conference.id}"
+            )
+        ])
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
@@ -234,7 +245,6 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
                         url=recording.link
                     )
                 )
-    logger.info(f"handle_conference_button: Move conference id {conference_id} next to deletion callbacks")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn] for btn in buttons])
     if user.role >= Role.ADMIN:
         keyboard.inline_keyboard.extend([
@@ -316,6 +326,29 @@ async def process_screenshot_request(callback: CallbackQuery, state: FSMContext)
     await callback.answer("")
 
 
+@user.callback_query(F.data.startswith("duration"))
+async def handle_duration_request(callback: CallbackQuery, state: FSMContext):
+    conference_id = callback.data.split(":")[1]
+    conference = await get_conference_by_id(conference_id)
+    if not conference:
+        await callback.answer("Ошибка: конференция не найдена!", show_alert=True)
+        return
+
+    telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
+    user = await get_user_by_telegram_tag(telegram_tag)
+    if not user:
+        return
+
+    await callback.message.delete()
+    await manage_active_task(command=Req.TIME, user_id=user.telegram_id)
+    await callback.message.answer(
+        text="Запрос о времени записи конференции отправлен! Бот даст знать, когда придёт ответ.",
+        reply_markup=main_actions_keyboard(user.role)
+    )
+    await state.clear()
+    await callback.answer("")
+
+
 @user.callback_query(F.data.startswith("back_to_conference"))
 async def back_to_conference(callback: CallbackQuery, state: FSMContext):
     conference_id = callback.data.split(":")[1]
@@ -336,12 +369,19 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
-    buttons = [
-        InlineKeyboardButton(
-            text="Получить скриншот записи",
-            callback_data=f"screenshot:{conference.id}"
-        )
-    ]
+    buttons = []
+    current_time = int(datetime.now().timestamp())
+    if conference.timestamp <= current_time:  # Конференция уже началась
+        buttons.extend([
+            InlineKeyboardButton(
+                text="Узнать, как долго уже идёт встреча",
+                callback_data=f"duration:{conference.id}"
+            ),
+            InlineKeyboardButton(
+                text="Получить скриншот записи",
+                callback_data=f"screenshot:{conference.id}"
+            )
+        ])
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
@@ -428,7 +468,6 @@ async def handle_delete_conference(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: конференция не найдена!", show_alert=True)
         return
 
-    logger.info(f"handle_delete_conference: Move conference id {conference_id} next to confirmation callbacks")
     await state.update_data(conference_id=conference_id)
     await callback.message.edit_text(
         text=f"Вы уверены, что хотите удалить конференцию и все связанные с ней записи?\nСсылка: {conference.link}",
@@ -496,12 +535,19 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
-    buttons = [
-        InlineKeyboardButton(
-            text="Получить скриншот записи",
-            callback_data=f"screenshot:{conference.id}"
-        )
-    ]
+    buttons = []
+    current_time = int(datetime.now().timestamp())
+    if conference.timestamp <= current_time:  # Конференция уже началась
+        buttons.extend([
+            InlineKeyboardButton(
+                text="Узнать, как долго уже идёт встреча",
+                callback_data=f"duration:{conference.id}"
+            ),
+            InlineKeyboardButton(
+                text="Получить скриншот записи",
+                callback_data=f"screenshot:{conference.id}"
+            )
+        ])
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))

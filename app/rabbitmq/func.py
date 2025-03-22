@@ -58,8 +58,9 @@ async def download_file(filepath):
     url = get_link(filepath)
     logger.info(f"download_file: got url {url} from get_link({filepath})")
     async with httpx.AsyncClient() as client:
-        logger.info("download_file: sending request...")
+        logger.info(f"download_file: sending request client.get({url})")
         response = await client.get(url)
+        logger.info(f"download_file: received a response: {response}")
         if response.status_code != 200:
             logger.info(f"Failed to download, status code: {response.status_code}")
             return None
@@ -134,6 +135,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                 filepath = await download_file(filepath)
             except Exception as e:
                 logger.warning(f"Exception while downloading file from {filepath}: '{e}'")
+                return
             await bot.send_photo(
                 chat_id=user_id,
                 photo=filepath,
