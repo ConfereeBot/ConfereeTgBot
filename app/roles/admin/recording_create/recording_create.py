@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timezone as datetime_timezone
 
 from aiogram import F
 from aiogram.fsm.context import FSMContext
@@ -200,7 +201,7 @@ async def process_start_date(message: Message, state: FSMContext):
         # Устанавливаем секунды в 00
         start_date = start_date.replace(second=0)
         timestamp = int(start_date.timestamp()) - (timezone * 3600)  # Корректируем на тайм-зону
-        current_time = int(datetime.now().timestamp())
+        current_time = int(datetime.now(datetime_timezone.utc).timestamp())
 
         if timestamp < current_time:
             await message.answer(
@@ -310,9 +311,10 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
         periodicity=periodicity if recurrence else None
     )
     if success:
-        meet_start_timestamp = int(timestamp.timestamp()) - (timezone * 3600)  # Корректируем на тайм-зону
-        current_time = int(datetime.now().timestamp())
-        await schedule_task(meet_link, meet_start_timestamp - current_time)
+        meet_start_timestamp = timestamp
+        current_time = int(datetime.now(datetime_timezone.utc).timestamp())
+        logger.info(f"Send {meet_start_timestamp - current_time} into broker ({meet_start_timestamp} - {current_time}")
+        await schedule_task(meet_link, (meet_start_timestamp - current_time))
         await callback.message.delete()
         await callback.message.answer(
             text=response,
@@ -324,6 +326,7 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
         )
     await state.clear()
+    await callback.answer("")
 
 
 @admin.callback_query(F.data == Callbacks.cancel_primary_action_callback)

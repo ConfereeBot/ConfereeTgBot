@@ -148,15 +148,15 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
 
 
 async def start_listening():
-    print("Starting listening to queues...")
+    logger.info("Starting listening to queues...")
     connection = await get_connection()
     async with connection as conn:
         channel = await conn.channel()
         reses = channel.basic_consume(queue="gmeet_res", consumer_callback=handle_responses)
         await asyncio.gather(reses)
-        print("Listeners are ready!")
+        logger.info("Listeners are ready!")
         await asyncio.Future()
-    print("Stopped listening to queues.")
+    logger.info("Stopped listening to queues.")
 
 
 async def decline_task(link: str):

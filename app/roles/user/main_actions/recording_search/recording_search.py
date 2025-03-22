@@ -95,6 +95,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
             short_date = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M')
             button_text = f"{i}. {clean_link}, {short_date}"
+            logger.info(f"process_tag_selection: Move conference id {conference.id} next to conferences list callbacks (conference itself={conference})")
             buttons.append(
                 InlineKeyboardButton(
                     text=button_text,
@@ -233,6 +234,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
                         url=recording.link
                     )
                 )
+    logger.info(f"handle_conference_button: Move conference id {conference_id} next to deletion callbacks")
     keyboard = InlineKeyboardMarkup(inline_keyboard=[[btn] for btn in buttons])
     if user.role >= Role.ADMIN:
         keyboard.inline_keyboard.extend([
@@ -426,6 +428,7 @@ async def handle_delete_conference(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: конференция не найдена!", show_alert=True)
         return
 
+    logger.info(f"handle_delete_conference: Move conference id {conference_id} next to confirmation callbacks")
     await state.update_data(conference_id=conference_id)
     await callback.message.edit_text(
         text=f"Вы уверены, что хотите удалить конференцию и все связанные с ней записи?\nСсылка: {conference.link}",
@@ -443,13 +446,20 @@ async def handle_delete_conference(callback: CallbackQuery, state: FSMContext):
 @admin.callback_query(F.data.startswith(Callbacks.confirm_delete_conference))
 async def confirm_delete_conference(callback: CallbackQuery, state: FSMContext):
     conference_id = callback.data.split(":")[1]
+    logger.info(f"Got conference id {conference_id} in confirmation callback")
     telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
     user = await get_user_by_telegram_tag(telegram_tag)
     if not user:
         return
+    conference = await get_conference_by_id(conference_id)
+    if conference is None:
+        logger.info(f"Error while searching for {conference_id} in db, no such conference.")
+        await callback.answer("Error")
+        return
     success, response = await delete_conference_by_id(conference_id)
+    logger.info(f"delete_conference_by_id result: success={success}, response: {response}")
     if success:
-        await decline_task((await get_conference_by_id(conference_id)).link)
+        await decline_task(conference.link)
         await callback.message.delete()
         await callback.message.answer(
             text=response,
@@ -462,6 +472,7 @@ async def confirm_delete_conference(callback: CallbackQuery, state: FSMContext):
         )
     await state.clear()
     await callback.answer("")
+    logger.info("Finished confirm_delete_conference function")
 
 
 @admin.callback_query(F.data.startswith(Callbacks.cancel_delete_conference))
