@@ -38,20 +38,24 @@ async def schedule_task(link: str, in_secs: int):
     )
 
 
-async def manage_active_task(command: res.Req):
+async def manage_active_task(command: res.Req, user_id: int):
     print(f"Manage active task: <{command}>")
     connection = await get_connection()
     channel = await connection.channel()
     await channel.basic_publish(
-        body=res.prepare(command, ""),
+        body=res.prepare(command, "", user_id),
         exchange="conferee_direct",
         routing_key="gmeet_manage",
     )
 
 
-async def download_file(filepath):
+def get_link(filepath):
     web = os.getenv("WEB_SERVER")
-    url = web + filepath
+    return web + filepath
+
+
+async def download_file(filepath):
+    url = get_link(filepath)
     async with httpx.AsyncClient() as client:
         response = await client.get(url)
         if response.status_code != 200:
@@ -71,6 +75,8 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         msg: dict = json.loads(body)
         type = msg.get("type")
         body = msg.get("body")
+        user_id = msg.get("user_id")  # USE USER_ID
+        print(user_id)
         if type == res.Res.BUSY:
             print("Consumer is busy:", body)
             await message_to_all_admins(
@@ -128,6 +134,10 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             #         )
             # # use filepath
             # # os.remove(filepath)
+            filepath = get_link(msg.get("filepath"))
+            print("Consumer successfuly finished recording:", body, filepath)
+            # TODO use filepath
+            # os.remove(filepath)
         elif type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
             await message_to_all_admins(
@@ -135,42 +145,11 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                 f"Не удалось записать конференцию {body}, произошла ошибка в процессе записи."
             )
         elif type == res.Req.SCREENSHOT:
-            print("Got screenshot:", body)
-            filepath = await download_file(body)
-            meet_link = body
-            conference_of_screenshot = await get_conference_by_link(meet_link)
-            if conference_of_screenshot is not None:
-                try:
-                    requester_id = conference_of_screenshot.users_queue_to_get_screenshot.pop(0)
-                    requester = await get_user_by_id(str(requester_id))
-                    if requester is not None:
-                        await bot.send_photo(
-                            chat_id=requester.telegram_id,
-                            photo=filepath,
-                            caption=f"Запрошенный скриншот конференции {meet_link} готов!"
-                        )
-                except IndexError:
-                    pass
-
-            # TODO ссылка будет приходить иначе
-            conference = await get_conference_by_link(body)
-            if conference is not None:
-                success, operation_msg, recording_id = await create_recording_by_conference_link(
-                    conference.link, filepath
-                )
-                if success:
-                    logger.warning(f"Successfully created recording with id {recording_id}: {operation_msg}")
-                    success, operation_msg = await add_recording_to_conference(conference.id, recording_id)
-                    if not success:
-                        logger.warning(f"Error while adding recording with id {recording_id} "
-                                       f"into the conference '{conference}' array: {operation_msg}")
-                    else:
-                        logger.warning(f"Successfully added recording with id {recording_id} "
-                                       f"into the conference '{conference}' array: {operation_msg}")
-                else:
-                    logger.warning(f"Error while creating recording with conference link '{conference.link}' "
-                                   f"and filepath '{filepath}': {operation_msg}")
-            os.remove(filepath)
+            filepath = msg.get("filepath")
+            print("Got screenshot:", filepath)
+            filepath = await download_file(filepath)
+            # TODO use filepath
+            # os.remove(filepath)
         elif type == res.Req.TIME:
             print("Got current recording time:", body)
             # TODO write user

@@ -13,5 +13,12 @@ class Req(StrEnum):
     TIME = "time"
 
 
-def prepare(res: Req, body) -> bytes:
-    return str({"type": res.value, "body": body}).encode()
+def prepare(res: Res, body, user_id=-1, filepath="") -> bytes:
+    return str(
+        {
+            "type": res.value,
+            "body": body,
+            "user_id": user_id,
+            "filepath": filepath,
+        }
+    ).encode()
