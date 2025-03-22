@@ -12,7 +12,7 @@ from ..bot import bot
 from ..database.conference_db_operations import get_conference_by_link, add_recording_to_conference
 from ..database.models.conference_DBO import Conference
 from ..database.recording_db_operations import create_recording_by_conference_link
-from ..database.user_db_operations import get_all_users, get_admins, get_user_by_id
+from ..database.user_db_operations import get_all_users, get_admins, get_user_by_id, get_owners
 from ..utils.logger import logger
 
 connection: AbstractConnection | None = None
@@ -82,14 +82,14 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
         if response_type == res.Res.BUSY:
             print("Consumer is busy:", body)
-            await message_to_all_admins(
+            await message_to_all_admins_and_owners(
                 message="⚠️ Ошибка записи!\n\n "
                 f"Ошибка записи конференции {body}: бот занят записью другой конференции "
                 "и не может записать указанную."
             )
         elif response_type == res.Res.STARTED:
             print("Consumer started:", body)
-            await message_to_all_admins(
+            await message_to_all_admins_and_owners(
                 "🎦 Запись начата.\n\n "
                 f"Запись конференции {body} начата."
             )
@@ -97,7 +97,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             filepath = get_link(msg.get("filepath"))
             logger.info(f"Got recording filepath: '{filepath}', the filepath itself in msg is '{msg.get("filepath")}'")
             print("Consumer successfully finished recording:", body, filepath)
-            await message_to_all_admins(
+            await message_to_all_admins_and_owners(
                 "✅ Конференция записана успешно!\n\n "
                 f"Запись конференции {body} закончена и сохранена."
             )
@@ -123,7 +123,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
                                    f"and filepath '{filepath}': {operation_msg}")
         elif response_type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
-            await message_to_all_admins(
+            await message_to_all_admins_and_owners(
                 "⚠️ Ошибка записи.\n\n "
                 f"Не удалось записать конференцию {body}, произошла ошибка в процессе записи."
             )
@@ -181,12 +181,20 @@ async def decline_task(link: str):
             await message.channel.basic_ack(delivery_tag=message.delivery.delivery_tag)
 
 
-async def message_to_all_admins(message: str):
+async def message_to_all_admins_and_owners(message: str):
     admins = await get_admins()
     for admin in admins:
         if admin.telegram_id is not None:
             await bot.send_message(
                 chat_id=admin.telegram_id,
+                text=message,
+                disable_notification=True,
+            )
+    owners = await get_owners()
+    for owner in owners:
+        if owner.telegram_id is not None:
+            await bot.send_message(
+                chat_id=owner.telegram_id,
                 text=message,
                 disable_notification=True,
             )

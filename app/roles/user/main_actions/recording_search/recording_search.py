@@ -141,14 +141,17 @@ async def process_meet_link(message: Message, state: FSMContext):
     if conference:
         tag = await get_tag_by_id(str(conference.tag_id))
         tag_name = tag.name if tag else "Неизвестный тег"
-        timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+        timestamp_str = (datetime
+                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                         )
         if conference.recordings:
             response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
         else:
             response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
         buttons = []
         current_time = int(datetime.now().timestamp())
-        if conference.timestamp <= current_time:  # Конференция уже началась
+        if conference.timestamp <= current_time:
             buttons.extend([
                 InlineKeyboardButton(
                     text="Узнать, как долго уже идёт встреча",
@@ -163,7 +166,7 @@ async def process_meet_link(message: Message, state: FSMContext):
             for recording_id in conference.recordings:
                 recording = await get_recording_by_id(str(recording_id))
                 if recording:
-                    recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M')
+                    recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%d.%m.%Y %H:%M')
                     buttons.append(
                         InlineKeyboardButton(
                             text=f"Открыть запись {recording_date}",
@@ -222,7 +225,10 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+    timestamp_str = (datetime
+                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                     )
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
@@ -244,7 +250,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
             if recording:
-                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M')
+                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%d.%m.%Y %H:%M')
                 buttons.append(
                     InlineKeyboardButton(
                         text=f"Открыть запись {recording_date}",
@@ -370,7 +376,10 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+    timestamp_str = (datetime
+                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                     )
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
@@ -392,7 +401,7 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
             if recording:
-                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M')
+                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%d.%m.%Y %H:%M')
                 buttons.append(
                     InlineKeyboardButton(
                         text=f"Открыть запись {recording_date}",
@@ -542,7 +551,10 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+    timestamp_str = (datetime
+                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                     )
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
@@ -564,7 +576,7 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
             if recording:
-                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%Y-%m-%d %H:%M')
+                recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%d.%m.%Y %H:%M')
                 buttons.append(
                     InlineKeyboardButton(
                         text=f"Открыть запись {recording_date}",

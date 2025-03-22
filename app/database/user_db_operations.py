@@ -150,6 +150,19 @@ async def get_admins() -> List[User]:
         return []
 
 
+async def get_owners() -> List[User]:
+    """Получает всех пользователей с ролью owner."""
+    users_collection: AgnosticCollection = db.db["users"]
+    owners = []
+    try:
+        async for user_doc in users_collection.find({"role": Role.OWNER}):
+            owners.append(User(**user_doc))
+        return owners
+    except Exception as e:
+        logger.error(f"Ошибка при получении списка владельцев: {e}")
+        return []
+
+
 async def get_user_by_id(user_id: str) -> Optional[User]:
     """Получает пользователя по ID."""
     users_collection: AgnosticCollection = db.db["users"]
