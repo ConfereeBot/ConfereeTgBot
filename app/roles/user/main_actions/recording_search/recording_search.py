@@ -88,10 +88,16 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+            timestamp_str = (datetime
+                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                             .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                             )
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            short_date = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M')
+            short_date = (datetime
+                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                          .strftime('%d.%m.%Y %H:%M')
+                          )
             button_text = f"{i}. {clean_link}, {short_date}"
             buttons.append(
                 InlineKeyboardButton(
@@ -435,10 +441,16 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            timestamp_str = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M:%S UTC')
+            timestamp_str = (datetime
+                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                             .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                             )
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            short_date = datetime.fromtimestamp(conference.timestamp).strftime('%Y-%m-%d %H:%M')
+            short_date = (datetime
+                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                          .strftime('%d.%m.%Y %H:%M')
+                          )
             button_text = f"{i}. {clean_link}, {short_date}"
             buttons.append(
                 InlineKeyboardButton(

@@ -84,14 +84,14 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             print("Consumer is busy:", body)
             await bot.send_message(
                 chat_id=user_id,
-                text="⚠️ Ошибка записи \n\n "
+                text="⚠️ Ошибка записи!\n\n "
                 f"Ошибка записи конференции {body}: бот занят записью другой конференции "
                 "и не может записать указанную."
             )
         elif response_type == res.Res.STARTED:
             print("Consumer started:", body)
             await message_to_all_admins(
-                "🎦 Запись начата \n\n "
+                "🎦 Запись начата.\n\n "
                 f"Запись конференции {body} начата."
             )
         elif response_type == res.Res.SUCCEDED:
@@ -99,7 +99,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             logger.info(f"Got recording filepath: '{filepath}', the filepath itself in msg is '{msg.get("filepath")}'")
             print("Consumer successfully finished recording:", body, filepath)
             await message_to_all_admins(
-                "✅ Конференция записана успешно \n\n "
+                "✅ Конференция записана успешно!\n\n "
                 f"Запись конференции {body} закончена и сохранена."
             )
             conference = await get_conference_by_link(body)
@@ -125,7 +125,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         elif response_type == res.Res.ERROR:
             print("Consumer finished with ERROR:", body)
             await message_to_all_admins(
-                "⚠️ Ошибка записи \n\n "
+                "⚠️ Ошибка записи.\n\n "
                 f"Не удалось записать конференцию {body}, произошла ошибка в процессе записи."
             )
         elif response_type == res.Req.SCREENSHOT:
