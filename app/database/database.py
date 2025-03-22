@@ -20,7 +20,6 @@ class Database:
         await self.db["tags"].create_index("name", unique=True)
         await self.db["users"].create_index("telegram_tag", unique=True)
         await self.db["users"].create_index("telegram_id", unique=False)
-        await self.db["recordings"].create_index("meeting_id", unique=True)
         await self.db["conferences"].create_index("link", unique=True)
 
     async def get_active_tags(self) -> List[Tag]:

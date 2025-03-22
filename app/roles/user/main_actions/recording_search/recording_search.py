@@ -178,7 +178,7 @@ async def process_meet_link(message: Message, state: FSMContext):
                     recording_date = datetime.fromtimestamp(recording.timestamp).strftime('%d.%m.%Y %H:%M')
                     buttons.append(
                         InlineKeyboardButton(
-                            text=f"Открыть запись {recording_date}",
+                            text=f"Скачать запись {recording_date}",
                             url=recording.link
                         )
                     )
