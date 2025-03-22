@@ -9,11 +9,15 @@ from pamqp.commands import Basic
 
 from . import responses as res
 from ..bot import bot
-from ..database.conference_db_operations import get_conference_by_link, add_recording_to_conference
+from ..database.conference_db_operations import get_conference_by_link, add_recording_to_conference, \
+    update_conference_timestamp
 from ..database.models.conference_DBO import Conference
 from ..database.recording_db_operations import create_recording_by_conference_link
 from ..database.user_db_operations import get_all_users, get_admins, get_user_by_id, get_owners
 from ..utils.logger import logger
+from datetime import datetime
+from aiogram.types import FSInputFile
+from datetime import timezone as datetime_timezone
 
 connection: AbstractConnection | None = None
 
@@ -71,6 +75,21 @@ async def download_file(filepath):
         return filepath
 
 
+async def update_conference_meeting_datetime(conference: Conference) -> tuple[bool, str]:
+    if conference.periodicity is None:
+        return await update_conference_timestamp(conference.id, None)
+    else:
+        next_meeting_timestamp = conference.timestamp + conference.periodicity * 7 * 24 * 60 * 60
+        success, msg = await update_conference_timestamp(conference.id, next_meeting_timestamp)
+        if not success:
+            return False, f"Error while updating conference timestamp: {msg}"
+        current_time = int(datetime.now(datetime_timezone.utc).timestamp())
+        secs_before_meeting = current_time - next_meeting_timestamp
+        await schedule_task(conference.link, secs_before_meeting)
+        logger.info(f"Scheduled task with link {conference.link} for broker: start in {secs_before_meeting}s")
+        return True, f"Successfully scheduled new task for broker on link {conference.link}, start in {secs_before_meeting}s"
+
+
 async def handle_responses(message: aiormq.abc.DeliveredMessage):
     body = message.body.decode().replace("'", '"').replace('b"', '"')
     print(f"Received response: {body}")
@@ -103,6 +122,9 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             )
             conference = await get_conference_by_link(body)
             if conference is not None:
+                success, msg = await update_conference_meeting_datetime(conference=conference)
+                if not success:
+                    logger.warning(msg)
                 success, operation_msg, recording_id, recording = await create_recording_by_conference_link(
                     conference_link=conference.link,
                     recording_link=filepath
@@ -135,9 +157,10 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             except Exception as e:
                 logger.warning(f"Exception while downloading file from {filepath}: '{e}'")
                 return
+            photo = FSInputFile(filepath)
             await bot.send_photo(
                 chat_id=user_id,
-                photo=filepath,
+                photo=photo,
                 caption=f"✔ Запрошенный скриншот происходящего в конференции {body} готов!"
             )
             os.remove(filepath)

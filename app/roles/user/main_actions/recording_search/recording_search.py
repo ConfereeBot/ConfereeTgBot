@@ -88,16 +88,22 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            timestamp_str = (datetime
-                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                             .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                             )
+            if conference.timestamp is not None:
+                timestamp_str = (datetime
+                                 .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                                 )
+            else:
+                timestamp_str = "отсутствует, так как встреча не является регулярной."
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            short_date = (datetime
-                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                          .strftime('%d.%m.%Y %H:%M')
-                          )
+            if conference.timestamp is not None:
+                short_date = (datetime
+                              .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                              .strftime('%d.%m.%Y %H:%M')
+                              )
+            else:
+                short_date = "не регулярная"
             button_text = f"{i}. {clean_link}, {short_date}"
             buttons.append(
                 InlineKeyboardButton(
@@ -141,17 +147,20 @@ async def process_meet_link(message: Message, state: FSMContext):
     if conference:
         tag = await get_tag_by_id(str(conference.tag_id))
         tag_name = tag.name if tag else "Неизвестный тег"
-        timestamp_str = (datetime
+        if conference.timestamp is not None:
+            timestamp_str = (datetime
                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
                          )
-        if conference.recordings:
-            response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
         else:
-            response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
+            timestamp_str = "отсутствует, так как встреча не является регулярной."
+        if conference.recordings:
+            response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата следующей встречи: {timestamp_str}"
+        else:
+            response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nДата следующей встречи: {timestamp_str}\n\nЗаписей пока нет."
         buttons = []
         current_time = int(datetime.now().timestamp())
-        if conference.timestamp <= current_time:
+        if conference.timestamp is not None and conference.timestamp <= current_time:
             buttons.extend([
                 InlineKeyboardButton(
                     text="Узнать, как долго уже идёт встреча",
@@ -225,17 +234,20 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = (datetime
-                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                     )
+    if conference.timestamp is not None:
+        timestamp_str = (datetime
+                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                         )
+    else:
+        timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text="Узнать, как долго уже идёт встреча",
@@ -293,7 +305,7 @@ async def handle_screenshot_request(callback: CallbackQuery, state: FSMContext):
     response = "Эта функция позволяет получить скриншот встречи и узнать, что происходит в конференции прямо сейчас."
     current_time = int(datetime.now().timestamp())
 
-    if conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Запросить скриншот",
                                   callback_data=f"request_screenshot:{conference_id}")],
@@ -376,17 +388,20 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = (datetime
-                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                     )
+    if conference.timestamp is not None:
+        timestamp_str = (datetime
+                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                         )
+    else:
+        timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
         buttons.extend([
             InlineKeyboardButton(
                 text="Узнать, как долго уже идёт встреча",
@@ -450,16 +465,22 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            timestamp_str = (datetime
-                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                             .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                             )
+            if conference.timestamp is not None:
+                timestamp_str = (datetime
+                                 .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                                 )
+            else:
+                timestamp_str = "отсутствует, так как встреча не является регулярной."
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            short_date = (datetime
-                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                          .strftime('%d.%m.%Y %H:%M')
-                          )
+            if conference.timestamp is not None:
+                short_date = (datetime
+                              .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                              .strftime('%d.%m.%Y %H:%M')
+                              )
+            else:
+                short_date = "не регулярная"
             button_text = f"{i}. {clean_link}, {short_date}"
             buttons.append(
                 InlineKeyboardButton(
@@ -551,17 +572,20 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
 
     tag = await get_tag_by_id(str(conference.tag_id))
     tag_name = tag.name if tag else "Неизвестный тег"
-    timestamp_str = (datetime
-                     .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                     .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                     )
+    if conference.timestamp is not None:
+        timestamp_str = (datetime
+                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
+                         )
+    else:
+        timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}"
     else:
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
         buttons.extend([
             InlineKeyboardButton(
                 text="Узнать, как долго уже идёт встреча",

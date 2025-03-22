@@ -10,6 +10,43 @@ from app.database.recording_db_operations import delete_recording_from_db
 from app.utils.logger import logger
 
 
+async def update_conference_timestamp(conference_id: ObjectId, timestamp: int | None) -> tuple[bool, str]:
+    """
+    Update the timestamp of a conference with the given ID.
+
+    Args:
+        conference_id (ObjectId): The ID of the conference to update.
+        timestamp (int | None): The new timestamp value to set (Unix timestamp in seconds or None).
+
+    Returns:
+        tuple[bool, str]: A tuple containing:
+            - Success flag (True if updated, False if failed).
+            - Response message.
+    """
+    conferences_collection: AgnosticCollection = db.db["conferences"]
+    try:
+        # Проверяем, существует ли конференция
+        conference = await get_conference_by_id(str(conference_id))
+        if not conference:
+            logger.warning(f"Conference with id '{conference_id}' not found")
+            return False, f"Конференция с id '{conference_id}' не найдена!"
+
+        # Обновляем timestamp (может быть None)
+        result = await conferences_collection.update_one(
+            {"_id": conference_id},
+            {"$set": {"timestamp": timestamp}}
+        )
+        if result.modified_count == 0:
+            logger.info(f"Timestamp for conference '{conference_id}' was already '{timestamp}' or no changes applied")
+            return True, f"Timestamp для конференции '{conference.link}' уже был '{timestamp}' или не изменился!"
+
+        logger.info(f"Timestamp for conference '{conference_id}' updated to '{timestamp}'")
+        return True, f"Timestamp для конференции '{conference.link}' успешно обновлён на '{timestamp}'!"
+    except Exception as e:
+        logger.error(f"Error updating timestamp for conference '{conference_id}': {e}")
+        return False, f"Ошибка при обновлении timestamp: {e}"
+
+
 async def conference_exists_by_link(meet_link: str) -> bool:
     """Check if a conference with the given link already exists in the database."""
     existing_conference = await db.db.conferences.find_one({"link": meet_link})
