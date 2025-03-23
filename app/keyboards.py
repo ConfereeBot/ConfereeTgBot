@@ -37,9 +37,7 @@ choose_recordings_search_method_keyboard = InlineKeyboardMarkup(
             InlineKeyboardButton(text=labels.BY_TAG, callback_data=Callbacks.get_recording_by_tag_callback),
             InlineKeyboardButton(text=labels.BY_LINK, callback_data=Callbacks.get_recording_by_link_callback),
         ],
-    ],
-    resize_keyboard=True,
-    input_field_placeholder=labels.CHOOSE_SEARCH_RECORD_TYPE,
+    ]
 )
 
 

@@ -41,7 +41,7 @@ async def on_tag_delete_callback(callback: CallbackQuery, state: FSMContext):
     await state.update_data(tag_id=tag_id)
     await state.set_state(TagManagementStates.waiting_for_delete_confirmation)
     await callback.message.edit_text(
-        text=f"Вы точно хотите удалить тег '{tag.name}' и все связанные с ним записи навсегда?",
+        text=f"❗ Требуется подтверждение опасного действия\n\nВы точно хотите удалить тег '{tag.name}' и все связанные с ним записи навсегда?",
         reply_markup=tag_deletion_confirmation_keyboard,
     )
     await callback.answer("")

@@ -64,7 +64,7 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+            [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_meet_link)
@@ -116,7 +116,7 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
         await message.answer(
             text=f"Конференция с ссылкой '{meet_link}' уже существует! Проверьте корректность ссылки и попробуйте снова:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+                [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
             ]),
         )
         return
@@ -125,7 +125,7 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
     await message.answer(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
@@ -136,7 +136,7 @@ async def back_to_link_from_timezone(callback: CallbackQuery, state: FSMContext)
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+            [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_meet_link)
@@ -158,7 +158,7 @@ async def process_timezone(message: Message, state: FSMContext):
         await message.answer(
             text="Ошибка: неверный формат тайм-зоны! Введите число от -12 до +14 (например, +3 или -5). Повторите ввод:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
             ]),
         )
         return
@@ -167,7 +167,7 @@ async def process_timezone(message: Message, state: FSMContext):
     await message.answer(
         text="Введите дату и время начала конференции в формате 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_start_date)
@@ -178,7 +178,7 @@ async def back_to_timezone_from_date(callback: CallbackQuery, state: FSMContext)
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
@@ -207,7 +207,7 @@ async def process_start_date(message: Message, state: FSMContext):
             await message.answer(
                 text="Ошибка: указанная дата и время находятся в прошлом! Введите будущую дату:",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+                    [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
                 ]),
             )
             return
@@ -216,7 +216,7 @@ async def process_start_date(message: Message, state: FSMContext):
         await message.answer(
             text="Ошибка: неверный формат даты! Используйте 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30). Повторите ввод:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
             ]),
         )
         return
@@ -227,7 +227,7 @@ async def process_start_date(message: Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Да", callback_data="recurrence_yes"),
              InlineKeyboardButton(text="Нет", callback_data="recurrence_no")],
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_recurrence)
@@ -238,7 +238,7 @@ async def back_to_timezone_from_recurrence(callback: CallbackQuery, state: FSMCo
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
@@ -256,7 +256,7 @@ async def process_recurrence(callback: CallbackQuery, state: FSMContext):
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="1 неделя", callback_data="period_1"),
                  InlineKeyboardButton(text="2 недели", callback_data="period_2")],
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_date")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_date")]
             ]),
         )
         await state.set_state(RecordingCreateStates.waiting_for_periodicity)
@@ -272,7 +272,7 @@ async def back_to_date_from_periodicity(callback: CallbackQuery, state: FSMConte
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Да", callback_data="recurrence_yes"),
              InlineKeyboardButton(text="Нет", callback_data="recurrence_no")],
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_recurrence)
