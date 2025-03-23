@@ -2,7 +2,7 @@ from typing import List
 
 from motor.motor_asyncio import AsyncIOMotorClient
 
-from app.config.config import MONGODB_URI, DB_NAME
+from app.config.config import MONGODB_URI, MONGODB_DATABASE
 from app.database.models.tag_DBO import Tag
 from app.database.models.user_DBO import User
 
@@ -10,7 +10,7 @@ from app.database.models.user_DBO import User
 class Database:
     def __init__(self):
         self.client = AsyncIOMotorClient(MONGODB_URI)
-        self.db = self.client[DB_NAME]
+        self.db = self.client[MONGODB_DATABASE]
 
     async def ping(self):
         await self.db.command("ping")
