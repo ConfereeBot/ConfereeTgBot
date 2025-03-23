@@ -25,17 +25,7 @@ The bot allows users to plan, tag, and search conference recordings, manage acce
 
 ## 🎥Demonstration
 
-<style>
-  .image {
-    height: 200px; /* Adjust the height as needed */
-    width: auto; /* Maintain the original aspect ratio */
-    object-fit: contain; /* Ensures the image is fully visible without distortion */
-  }
-</style>
-
-<img src="docs/images/tg_main.jpg" class="image" style="width: 35%;" />
-<img src="docs/images/tg_menu.jpg" class="image" style="width: 25%;" />
-<img src="docs/images/tg_meet.jpg" class="image" style="width: 30%;" />
+<img src="docs/images/tg_main.jpg" class="image" style="width: 35%;" /> <img src="docs/images/tg_menu.jpg" class="image" style="width: 25%;" /> <img src="docs/images/tg_meet.jpg" class="image" style="width: 35%;" />
 
 ## 🛠️Roles and Permissions
 
