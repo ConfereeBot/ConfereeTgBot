@@ -14,6 +14,15 @@ from app.roles.owner.owner import owner
 from app.roles.user.user_cmds import user
 from app.utils.logger import setup_logger
 
+from app.roles.owner.admins_management import admins_management
+from app.roles.admin.recording_create import recording_create
+from app.roles.admin.tags_management.handlers import tags_create
+from app.roles.admin.tags_management.handlers import tags_read
+from app.roles.admin.tags_management.handlers import tags_update
+from app.roles.admin.tags_management.handlers import tags_delete
+from app.roles.user.main_actions import shared_callbacks
+from app.roles.user.main_actions.recording_search import recording_search
+
 logger = setup_logger(__name__)
 
 
