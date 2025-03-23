@@ -2,7 +2,7 @@ name: Deploy prod-runner
 on:
     push:
         branches:
-            - prod
+            - main
 jobs:
     deploy:
         runs-on: [self-hosted, ab-host]
