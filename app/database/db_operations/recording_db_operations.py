@@ -8,7 +8,9 @@ from app.database.models.recording_DBO import Recording
 from app.utils.logger import logger
 
 
-async def add_recording_to_db(meeting_id: ObjectId, link: str) -> tuple[bool, str, Optional[ObjectId]]:
+async def add_recording_to_db(
+    meeting_id: ObjectId, link: str
+) -> tuple[bool, str, Optional[ObjectId]]:
     """Добавляет новую запись в базу данных."""
     recording = Recording(conference_id=meeting_id, link=link)
     recordings_collection: AgnosticCollection = db.db["recordings"]
@@ -24,7 +26,9 @@ async def add_recording_to_db(meeting_id: ObjectId, link: str) -> tuple[bool, st
         return False, f"Ошибка: {e}", None
 
 
-async def create_recording_by_conference_link(conference_link: str, recording_link: str) -> tuple[bool, str, Optional[ObjectId], Optional[Recording]]:
+async def create_recording_by_conference_link(
+    conference_link: str, recording_link: str
+) -> tuple[bool, str, Optional[ObjectId], Optional[Recording]]:
     """
     Создаёт новую запись в базе данных, привязанную к конференции по её ссылке.
 
@@ -48,13 +52,22 @@ async def create_recording_by_conference_link(conference_link: str, recording_li
     recordings_collection: AgnosticCollection = db.db["recordings"]
     try:
         await recordings_collection.insert_one(recording.model_dump(by_alias=True))
-        logger.info(f"Запись с ссылкой '{recording_link}' добавлена для конференции '{conference_link}' с id: {recording.id}")
-        return True, f"Запись с ссылкой '{recording_link}' успешно добавлена!", recording.id, recording
+        logger.info(
+            f"Запись с ссылкой '{recording_link}' добавлена для конференции '{conference_link}' с id: {recording.id}"
+        )
+        return (
+            True,
+            f"Запись с ссылкой '{recording_link}' успешно добавлена!",
+            recording.id,
+            recording,
+        )
     except DuplicateKeyError:
         logger.warning(f"Запись с ссылкой '{recording_link}' уже существует")
         return False, f"Запись с ссылкой '{recording_link}' уже существует!", None, None
     except Exception as e:
-        logger.error(f"Ошибка при добавлении записи '{recording_link}' для конференции '{conference_link}': {e}")
+        logger.error(
+            f"Ошибка при добавлении записи '{recording_link}' для конференции '{conference_link}': {e}"
+        )
         return False, f"Ошибка: {e}", None, None
 
 
@@ -95,7 +108,7 @@ async def delete_recording_from_db(recording_id: str) -> tuple[bool, str]:
             logger.warning(f"Запись с id '{recording_id}' не найдена")
             return False, f"Запись с id '{recording_id}' не найдена!"
         logger.info(f"Запись с id '{recording_id}' успешно удалена")
-        return True, f"Запись успешно удалена!"
+        return True, "Запись успешно удалена!"
     except Exception as e:
         logger.error(f"Ошибка при удалении записи с id '{recording_id}': {e}")
         return False, f"Ошибка: {e}"

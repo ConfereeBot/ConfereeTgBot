@@ -1,7 +1,7 @@
 import asyncio
-from tomllib import load
 
 from aiogram import Dispatcher
+from tomllib import load
 
 import app.rabbitmq as mq
 from app.bot import bot
@@ -13,15 +13,6 @@ from app.roles.admin.admin import admin
 from app.roles.owner.owner import owner
 from app.roles.user.user_cmds import user
 from app.utils.logger import setup_logger
-
-from app.roles.owner.admins_management import admins_management
-from app.roles.admin.recording_create import recording_create
-from app.roles.admin.tags_management.handlers import tags_create
-from app.roles.admin.tags_management.handlers import tags_read
-from app.roles.admin.tags_management.handlers import tags_update
-from app.roles.admin.tags_management.handlers import tags_delete
-from app.roles.user.main_actions import shared_callbacks
-from app.roles.user.main_actions.recording_search import recording_search
 
 logger = setup_logger(__name__)
 
@@ -71,14 +62,3 @@ if __name__ == "__main__":
         logger.info("Работа приложения прервана")
     except Exception as ex:
         logger.critical(ex)
-
-
-""" USAGE
-
-Всё обрабатывай в mq.func.handle_responses, там я написал # TODO для твоего кода
-
-await mq.func.schedule_task("https://meet.google.com/qwe-qwe-qwe", 0)   schedule task in n secs
-await mq.func.manage_active_task(mq.responses.Req.TIME, user_id: int)                 request for current recording time
-await mq.func.manage_active_task(mq.responses.Req.SCREENSHOT, user_id: int)           request for screenshot
-await mq.func.decline_task("https://meet.google.com/qwe-qwe-qwe")       delete task from schedule
-"""
