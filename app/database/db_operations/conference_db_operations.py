@@ -5,12 +5,14 @@ from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
-from app.database.models.conference_DBO import Conference
 from app.database.db_operations.recording_db_operations import delete_recording_from_db
+from app.database.models.conference_DBO import Conference
 from app.utils.logger import logger
 
 
-async def update_conference_timestamp(conference_id: ObjectId, timestamp: int | None) -> tuple[bool, str]:
+async def update_conference_timestamp(
+    conference_id: ObjectId, timestamp: int | None
+) -> tuple[bool, str]:
     """
     Update the timestamp of a conference with the given ID.
 
@@ -33,15 +35,22 @@ async def update_conference_timestamp(conference_id: ObjectId, timestamp: int | 
 
         # Обновляем timestamp (может быть None)
         result = await conferences_collection.update_one(
-            {"_id": conference_id},
-            {"$set": {"next_meeting_timestamp": timestamp}}
+            {"_id": conference_id}, {"$set": {"next_meeting_timestamp": timestamp}}
         )
         if result.modified_count == 0:
-            logger.info(f"Timestamp for conference '{conference_id}' was already '{timestamp}' or no changes applied")
-            return True, f"Timestamp для конференции '{conference.link}' уже был '{timestamp}' или не изменился!"
+            logger.info(
+                f"Timestamp for conference '{conference_id}' was already '{timestamp}' or no changes applied"
+            )
+            return (
+                True,
+                f"Timestamp для конференции '{conference.link}' уже был '{timestamp}' или не изменился!",
+            )
 
         logger.info(f"Timestamp for conference '{conference_id}' updated to '{timestamp}'")
-        return True, f"Timestamp для конференции '{conference.link}' успешно обновлён на '{timestamp}'!"
+        return (
+            True,
+            f"Timestamp для конференции '{conference.link}' успешно обновлён на '{timestamp}'!",
+        )
     except Exception as e:
         logger.error(f"Error updating timestamp for conference '{conference_id}': {e}")
         return False, f"Ошибка при обновлении timestamp: {e}"
@@ -54,11 +63,11 @@ async def conference_exists_by_link(meet_link: str) -> bool:
 
 
 async def add_conference_to_db(
-        meet_link: str,
-        tag_id: ObjectId,
-        timestamp: int,
-        timezone: int,
-        periodicity: Optional[int] = None
+    meet_link: str,
+    tag_id: ObjectId,
+    timestamp: int,
+    timezone: int,
+    periodicity: Optional[int] = None,
 ) -> tuple[bool, str]:
     """
     Adds a new conference to the database.
@@ -77,7 +86,7 @@ async def add_conference_to_db(
         "recordings": [],
     }
     try:
-        result = await db.db.conferences.insert_one(conference)
+        await db.db.conferences.insert_one(conference)
         return True, f"Конференция с ссылкой {meet_link} успешно добавлена!"
     except DuplicateKeyError:
         return False, f"Конференция с ссылкой '{meet_link}' уже существует!"
@@ -124,19 +133,20 @@ async def get_conference_by_link(link: str) -> Optional[Conference]:
         return None
 
 
-async def add_recording_to_conference(conference_id: ObjectId, recording_id: ObjectId) -> tuple[bool, str]:
+async def add_recording_to_conference(
+    conference_id: ObjectId, recording_id: ObjectId
+) -> tuple[bool, str]:
     """Add a recording ID to the recordings array of a conference."""
     conferences_collection: AgnosticCollection = db.db["conferences"]
     try:
         result = await conferences_collection.update_one(
-            {"_id": conference_id},
-            {"$push": {"recordings": recording_id}}
+            {"_id": conference_id}, {"$push": {"recordings": recording_id}}
         )
         if result.modified_count == 0:
             logger.warning(f"Conference with id '{conference_id}' not found")
             return False, f"Conference with id '{conference_id}' not found!"
         logger.info(f"Recording {recording_id} added to conference with id '{conference_id}'")
-        return True, f"Recording successfully added to conference!"
+        return True, "Recording successfully added to conference!"
     except Exception as e:
         logger.error(f"Error updating conference with id '{conference_id}': {e}")
         return False, f"Error: {e}"
@@ -154,15 +164,22 @@ async def delete_conference_by_id(conference_id: str) -> tuple[bool, str]:
         for recording_id in conference.recordings:
             success, msg = await delete_recording_from_db(str(recording_id))
             if not success:
-                logger.warning(f"Failed to delete recording {recording_id} for conference {conference_id}: {msg}")
+                logger.warning(
+                    f"Failed to delete recording {recording_id} for conference {conference_id}: {msg}"
+                )
 
         result = await conferences_collection.delete_one({"_id": ObjectId(conference_id)})
         if result.deleted_count == 0:
             logger.warning(f"Conference with id '{conference_id}' not found during deletion")
             return False, f"Конференция с ссылкой '{conference.link}' не найдена!"
 
-        logger.info(f"Conference with id '{conference_id}' and its recordings deleted successfully")
-        return True, f"Конференция с ссылкой '{conference.link}' и все связанные записи успешно удалены!"
+        logger.info(
+            f"Conference with id '{conference_id}' and its recordings deleted successfully"
+        )
+        return (
+            True,
+            f"Конференция с ссылкой '{conference.link}' и все связанные записи успешно удалены!",
+        )
     except Exception as e:
         logger.error(f"Error deleting conference with id '{conference_id}': {e}")
         return False, f"Ошибка при удалении конференции: {e}"

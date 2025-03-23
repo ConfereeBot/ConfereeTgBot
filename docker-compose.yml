@@ -8,9 +8,9 @@ services:
     environment:
       - MONGODB_URI=mongodb://mongodb:27017
     env_file:
-      - ./.env
+      - .env
     volumes:
-      - ~/logs:/app/logs
+      - ./logs:/app/logs
     restart: unless-stopped
     labels:
       - group=confereebot
