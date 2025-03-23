@@ -94,10 +94,15 @@ async def update_conference_meeting_datetime(conference: Conference) -> tuple[bo
 
 async def handle_responses(message: aiormq.abc.DeliveredMessage):
     body = message.body.decode().replace("'", '"').replace('b"', '"')
-    print(f"Received response: {body}")
     await message.channel.basic_ack(delivery_tag=message.delivery.delivery_tag)
+    body = body.replace("None", "null")
+    print(f"Received response: {body}")
     try:
         msg: dict = json.loads(body)
+    except Exception as e:
+        logger.warning(f"Exception while loading json {body}, message: {e}")
+        return
+    try:
         response_type = msg.get("type")
         body = msg.get("body")
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
@@ -164,6 +169,13 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         elif response_type == res.Req.SCREENSHOT:
             filepath = msg.get("filepath")
             print("Got screenshot:", filepath)
+            if filepath is None:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text="⚠️ Ошибка получения скриншота.\n\n "
+                         f"Не удалось получить скриншот для конференции {body}. Произошла ошибка."
+                )
+                return
             try:
                 filepath = await download_file(filepath)
             except Exception as e:
@@ -179,6 +191,13 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
         elif response_type == res.Req.TIME:
             print("Got current recording time:", body)
             secs_from_rec_start = msg.get("filepath")
+            if secs_from_rec_start is None:
+                await bot.send_message(
+                    chat_id=user_id,
+                    text="⚠️ Ошибка получения времени записи.\n\n "
+                         f"Не удалось выполнить время записи конференции {body}. Произошла ошибка."
+                )
+                return
             await bot.send_message(
                 chat_id=user_id,
                 text=f"✔ Готов ответ на запрос о времени записи конференции {body}:\n\n"
@@ -188,7 +207,7 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
             )
 
     except Exception as e:
-        print(f"Consumer did not ack task: {body}\n{e}, {type(e)}")
+        logger.warning(f"Consumer did not ack task: {body}\n{e}, {type(e)}")
 
 
 async def start_listening():

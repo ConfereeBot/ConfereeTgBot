@@ -75,7 +75,6 @@ async def add_conference_to_db(
         "timezone": timezone,
         "periodicity": periodicity,
         "recordings": [],
-        "users_queue_to_get_screenshot": []
     }
     try:
         result = await db.db.conferences.insert_one(conference)
@@ -167,26 +166,3 @@ async def delete_conference_by_id(conference_id: str) -> tuple[bool, str]:
     except Exception as e:
         logger.error(f"Error deleting conference with id '{conference_id}': {e}")
         return False, f"Ошибка при удалении конференции: {e}"
-
-
-async def add_user_to_screenshot_queue(conference_id: ObjectId, user_id: ObjectId) -> tuple[bool, str]:
-    """Add a user ID to the users_queue_to_get_screenshot array of a conference."""
-    conferences_collection: AgnosticCollection = db.db["conferences"]
-    try:
-        # Проверяем, существует ли конференция и не находится ли пользователь уже в очереди
-        result = await conferences_collection.update_one(
-            {"_id": conference_id, "users_queue_to_get_screenshot": {"$ne": user_id}},
-            {"$push": {"users_queue_to_get_screenshot": user_id}}
-        )
-        if result.modified_count == 0:
-            conference = await get_conference_by_id(str(conference_id))
-            if not conference:
-                logger.warning(f"Conference with id '{conference_id}' not found")
-                return False, f"Конференция с id '{conference_id}' не найдена!"
-            logger.info(f"User {user_id} already in screenshot queue for conference '{conference_id}'")
-            return False, f"Вы уже в очереди на получение скриншота для конференции '{conference.link}'!"
-        logger.info(f"User {user_id} added to screenshot queue for conference '{conference_id}'")
-        return True, f"Пользователь успешно добавлен в очередь на скриншот!"
-    except Exception as e:
-        logger.error(f"Error adding user {user_id} to screenshot queue for conference '{conference_id}': {e}")
-        return False, f"Ошибка: {e}"
