@@ -35,6 +35,7 @@ class RecordingSearchStates(StatesGroup):
     browsing_conference = State()
     confirming_conference_deletion = State()
     requesting_screenshot = State()
+    confirming_stop_recording = State()  # Новый статус для подтверждения остановки записи
 
 
 @user.message(F.text == labels.GET_RECORD)
@@ -91,8 +92,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
             if conference.timestamp is not None:
                 timestamp_str = (datetime
                                  .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                                 )
+                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
             else:
                 timestamp_str = "отсутствует, так как встреча не является регулярной."
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
@@ -100,8 +100,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
             if conference.timestamp is not None:
                 short_date = (datetime
                               .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                              .strftime('%d.%m.%Y %H:%M')
-                              )
+                              .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
             button_text = f"{i}. {clean_link}, {short_date}"
@@ -149,9 +148,8 @@ async def process_meet_link(message: Message, state: FSMContext):
         tag_name = tag.name if tag else "Неизвестный тег"
         if conference.timestamp is not None:
             timestamp_str = (datetime
-                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                         )
+                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                             .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
         else:
             timestamp_str = "отсутствует, так как встреча не является регулярной."
         if conference.recordings:
@@ -171,6 +169,13 @@ async def process_meet_link(message: Message, state: FSMContext):
                     callback_data=f"screenshot:{conference.id}"
                 )
             ])
+            if user.role >= Role.ADMIN:
+                buttons.append(
+                    InlineKeyboardButton(
+                        text="Остановить запись",
+                        callback_data=f"stop_recording:{conference.id}"
+                    )
+                )
         if conference.recordings:
             for recording_id in conference.recordings:
                 recording = await get_recording_by_id(str(recording_id))
@@ -237,8 +242,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
     if conference.timestamp is not None:
         timestamp_str = (datetime
                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                         )
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
     else:
         timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
@@ -258,6 +262,13 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
                 callback_data=f"screenshot:{conference.id}"
             )
         ])
+        if user.role >= Role.ADMIN:
+            buttons.append(
+                InlineKeyboardButton(
+                    text="Остановить запись",
+                    callback_data=f"stop_recording:{conference.id}"
+                )
+            )
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
@@ -305,14 +316,14 @@ async def handle_screenshot_request(callback: CallbackQuery, state: FSMContext):
     response = "Эта функция позволяет получить скриншот встречи и узнать, что происходит в конференции прямо сейчас."
     current_time = int(datetime.now().timestamp())
 
-    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Запросить скриншот",
                                   callback_data=f"request_screenshot:{conference_id}")],
             [InlineKeyboardButton(text="Назад",
                                   callback_data=f"back_to_conference:{conference_id}")]
         ])
-    else:  # Конференция ещё не началась
+    else:
         await callback.answer(
             "Конференция ещё не началась, скриншот не может быть запрошен!",
             show_alert=True
@@ -373,6 +384,58 @@ async def handle_duration_request(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
+@user.callback_query(F.data.startswith("stop_recording"))
+async def handle_stop_recording_request(callback: CallbackQuery, state: FSMContext):
+    conference_id = callback.data.split(":")[1]
+    conference = await get_conference_by_id(conference_id)
+    if not conference:
+        await callback.answer("Ошибка: конференция не найдена!", show_alert=True)
+        return
+
+    telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
+    user = await get_user_by_telegram_tag(telegram_tag)
+    if not user or user.role < Role.ADMIN:
+        await callback.answer("У вас нет прав для остановки записи!", show_alert=True)
+        return
+
+    await state.update_data(conference_id=conference_id)
+    await callback.message.edit_text(
+        text=f"Вы уверены, что хотите остановить запись конференции?\nСсылка: {conference.link}",
+        reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="Назад",
+                                  callback_data=f"back_to_conference:{conference_id}")],
+            [InlineKeyboardButton(text="Подтвердить",
+                                  callback_data=f"confirm_stop_recording:{conference_id}")]
+        ])
+    )
+    await state.set_state(RecordingSearchStates.confirming_stop_recording)
+    await callback.answer("")
+
+
+@user.callback_query(F.data.startswith("confirm_stop_recording"))
+async def confirm_stop_recording(callback: CallbackQuery, state: FSMContext):
+    conference_id = callback.data.split(":")[1]
+    conference = await get_conference_by_id(conference_id)
+    if not conference:
+        await callback.answer("Ошибка: конференция не найдена!", show_alert=True)
+        return
+
+    telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
+    user = await get_user_by_telegram_tag(telegram_tag)
+    if not user or user.role < Role.ADMIN:
+        await callback.answer("У вас нет прав для остановки записи!", show_alert=True)
+        return
+
+    await callback.message.delete()
+    await manage_active_task(command=Req.STOP_RECORD, user_id=user.telegram_id)
+    await callback.message.answer(
+        text="Запрос на завершение записи был отправлен. Вы получите уведомление о конце записи, если бот одобрит ваш запрос.",
+        reply_markup=main_actions_keyboard(user.role)
+    )
+    await state.clear()
+    await callback.answer("")
+
+
 @user.callback_query(F.data.startswith("back_to_conference"))
 async def back_to_conference(callback: CallbackQuery, state: FSMContext):
     conference_id = callback.data.split(":")[1]
@@ -391,8 +454,7 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
     if conference.timestamp is not None:
         timestamp_str = (datetime
                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                         )
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
     else:
         timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
@@ -401,7 +463,7 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text="Узнать, как долго уже идёт встреча",
@@ -412,6 +474,13 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
                 callback_data=f"screenshot:{conference.id}"
             )
         ])
+        if user.role >= Role.ADMIN:
+            buttons.append(
+                InlineKeyboardButton(
+                    text="Остановить запись",
+                    callback_data=f"stop_recording:{conference.id}"
+                )
+            )
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
@@ -468,8 +537,7 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
             if conference.timestamp is not None:
                 timestamp_str = (datetime
                                  .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                                 )
+                                 .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
             else:
                 timestamp_str = "отсутствует, так как встреча не является регулярной."
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\n\n"
@@ -477,8 +545,7 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
             if conference.timestamp is not None:
                 short_date = (datetime
                               .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                              .strftime('%d.%m.%Y %H:%M')
-                              )
+                              .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
             button_text = f"{i}. {clean_link}, {short_date}"
@@ -575,8 +642,7 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
     if conference.timestamp is not None:
         timestamp_str = (datetime
                          .fromtimestamp(conference.timestamp + conference.timezone * 3600)
-                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}')
-                         )
+                         .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
     else:
         timestamp_str = "отсутствует, так как встреча не является регулярной."
     if conference.recordings:
@@ -585,7 +651,7 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nДата: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp is not None and conference.timestamp <= current_time:  # Конференция уже началась
+    if conference.timestamp is not None and conference.timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text="Узнать, как долго уже идёт встреча",
@@ -596,6 +662,13 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
                 callback_data=f"screenshot:{conference.id}"
             )
         ])
+        if user.role >= Role.ADMIN:
+            buttons.append(
+                InlineKeyboardButton(
+                    text="Остановить запись",
+                    callback_data=f"stop_recording:{conference.id}"
+                )
+            )
     if conference.recordings:
         for recording_id in conference.recordings:
             recording = await get_recording_by_id(str(recording_id))
