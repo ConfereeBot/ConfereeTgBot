@@ -6,7 +6,7 @@ services:
     depends_on:
       - mongodb
     env_file:
-      - ~/.env
+      - ~/.env.gmeet
     volumes:
       - ~/conferee_logs:/app/logs
     restart: unless-stopped
