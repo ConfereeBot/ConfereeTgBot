@@ -9,15 +9,15 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKe
 from app.config import labels
 from app.config.labels import CANCEL, REQUEST_TIME_PASSED, REQUEST_SCREENSHOT, REQUEST_STOP_RECORDING, BACK
 from app.config.roles import Role
-from app.database.conference_db_operations import delete_conference_by_id
-from app.database.conference_db_operations import (
+from app.database.db_operations.conference_db_operations import delete_conference_by_id
+from app.database.db_operations.conference_db_operations import (
     get_conferences_by_tag,
     get_conference_by_link,
     get_conference_by_id,
 )
-from app.database.recording_db_operations import get_recording_by_id
-from app.database.tag_db_operations import get_tag_by_id
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.recording_db_operations import get_recording_by_id
+from app.database.db_operations.tag_db_operations import get_tag_by_id
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
     choose_recordings_search_method_keyboard as recordings_keyboard,
     inline_active_tag_list,
@@ -92,12 +92,12 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            if conference.timestamp is not None:
+            if conference.next_meeting_timestamp is not None:
                 timestamp_str = (datetime
-                                 .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                                 .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                                  .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-                print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-                if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+                print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+                if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
                     conference_status = ConferenceStatus.IN_PROGRESS
                 else:
                     conference_status = ConferenceStatus.PLANNED
@@ -106,9 +106,9 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
                 timestamp_str = "отсутствует, так как встреча не является регулярной."
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\nСтатус: {conference_status}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            if conference.timestamp is not None:
+            if conference.next_meeting_timestamp is not None:
                 short_date = (datetime
-                              .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                              .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                               .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
@@ -161,12 +161,12 @@ async def process_meet_link(message: Message, state: FSMContext):
                 tag_name = tag.name
         else:
             tag_name = "Неизвестный тег"
-        if conference.timestamp is not None:
+        if conference.next_meeting_timestamp is not None:
             timestamp_str = (datetime
-                             .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                             .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                              .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-            print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-            if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+            print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+            if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
                 conference_status = ConferenceStatus.IN_PROGRESS
             else:
                 conference_status = ConferenceStatus.PLANNED
@@ -179,7 +179,7 @@ async def process_meet_link(message: Message, state: FSMContext):
             response = f"Найдена конференция:\nСсылка: {conference.link}\nТег: {tag_name}\nСтатус: {conference_status}\nДата следующей встречи: {timestamp_str}\n\nЗаписей пока нет."
         buttons = []
         current_time = int(datetime.now().timestamp())
-        if conference.timestamp is not None and conference.timestamp <= current_time:
+        if conference.next_meeting_timestamp is not None and conference.next_meeting_timestamp <= current_time:
             buttons.extend([
                 InlineKeyboardButton(
                     text=REQUEST_TIME_PASSED,
@@ -266,12 +266,12 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
             tag_name = tag.name
     else:
         tag_name = "Неизвестный тег"
-    if conference.timestamp is not None:
+    if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-        print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-        if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+        print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+        if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
             conference_status = ConferenceStatus.IN_PROGRESS
         else:
             conference_status = ConferenceStatus.PLANNED
@@ -284,7 +284,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nСтатус: {conference_status}\nДата следующей встречи: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp is not None and conference.timestamp <= current_time:
+    if conference.next_meeting_timestamp is not None and conference.next_meeting_timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text=REQUEST_TIME_PASSED,
@@ -349,7 +349,7 @@ async def handle_screenshot_request(callback: CallbackQuery, state: FSMContext):
     response = "Эта функция позволяет получить скриншот встречи и узнать, что происходит в конференции прямо сейчас."
     current_time = int(datetime.now().timestamp())
 
-    if conference.timestamp is not None and conference.timestamp <= current_time:
+    if conference.next_meeting_timestamp is not None and conference.next_meeting_timestamp <= current_time:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Запросить скриншот",
                                   callback_data=f"request_screenshot:{conference_id}")],
@@ -490,12 +490,12 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
             tag_name = tag.name
     else:
         tag_name = "Неизвестный тег"
-    if conference.timestamp is not None:
+    if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-        print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-        if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+        print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+        if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
             conference_status = ConferenceStatus.IN_PROGRESS
         else:
             conference_status = ConferenceStatus.PLANNED
@@ -508,7 +508,7 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nСтатус: {conference_status}\nДата следующей встречи: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp is not None and conference.timestamp <= current_time:
+    if conference.next_meeting_timestamp is not None and conference.next_meeting_timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text=REQUEST_TIME_PASSED,
@@ -579,12 +579,12 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
         response = f"Найденные конференции с тегом '{tag.name}':\n\n"
         buttons = []
         for i, conference in enumerate(conferences, 1):
-            if conference.timestamp is not None:
+            if conference.next_meeting_timestamp is not None:
                 timestamp_str = (datetime
-                                 .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                                 .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                                  .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-                print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-                if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+                print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+                if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
                     conference_status = ConferenceStatus.IN_PROGRESS
                 else:
                     conference_status = ConferenceStatus.PLANNED
@@ -593,9 +593,9 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
                 conference_status = ConferenceStatus.FINISHED
             response += f"{i}. Конференция: {conference.link}\nДата: {timestamp_str}\nСтатус: {conference_status}\n\n"
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
-            if conference.timestamp is not None:
+            if conference.next_meeting_timestamp is not None:
                 short_date = (datetime
-                              .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                              .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                               .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
@@ -697,12 +697,12 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
             tag_name = tag.name
     else:
         tag_name = "Неизвестный тег"
-    if conference.timestamp is not None:
+    if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
-        print(conference.timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
-        if conference.timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
+        print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
+        if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
             conference_status = ConferenceStatus.IN_PROGRESS
         else:
             conference_status = ConferenceStatus.PLANNED
@@ -715,7 +715,7 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
         response = f"Конференция: {conference.link}\nТег: {tag_name}\nСтатус: {conference_status}\nДата следующей встречи: {timestamp_str}\n\nЗаписей пока нет."
     buttons = []
     current_time = int(datetime.now().timestamp())
-    if conference.timestamp is not None and conference.timestamp <= current_time:
+    if conference.next_meeting_timestamp is not None and conference.next_meeting_timestamp <= current_time:
         buttons.extend([
             InlineKeyboardButton(
                 text=REQUEST_TIME_PASSED,

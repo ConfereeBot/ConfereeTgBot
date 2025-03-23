@@ -9,12 +9,12 @@ from pamqp.commands import Basic
 
 from . import responses as res
 from ..bot import bot
-from ..database.conference_db_operations import get_conference_by_link, add_recording_to_conference, \
+from app.database.db_operations.conference_db_operations import get_conference_by_link, add_recording_to_conference, \
     update_conference_timestamp
 from ..database.models.conference_DBO import Conference
-from ..database.recording_db_operations import create_recording_by_conference_link
-from ..database.tag_db_operations import get_tag_by_id
-from ..database.user_db_operations import get_all_users, get_admins, get_user_by_id, get_owners
+from app.database.db_operations.recording_db_operations import create_recording_by_conference_link
+from app.database.db_operations.tag_db_operations import get_tag_by_id
+from app.database.db_operations.user_db_operations import get_admins, get_owners
 from ..utils.logger import logger
 from datetime import datetime
 from aiogram.types import FSInputFile
@@ -80,8 +80,8 @@ async def update_conference_meeting_datetime(conference: Conference) -> tuple[bo
     if conference.periodicity is None:
         return await update_conference_timestamp(conference.id, None)
     else:
-        next_meeting_timestamp = conference.timestamp + conference.periodicity * 7 * 24 * 60 * 60
-        logger.info(f"Next meeting scheduled on {next_meeting_timestamp}, which is {conference.timestamp} + {conference.periodicity} week")
+        next_meeting_timestamp = conference.next_meeting_timestamp + conference.periodicity * 7 * 24 * 60 * 60
+        logger.info(f"Next meeting scheduled on {next_meeting_timestamp}, which is {conference.next_meeting_timestamp} + {conference.periodicity} week")
         success, msg = await update_conference_timestamp(conference.id, next_meeting_timestamp)
         if not success:
             return False, f"Error while updating conference timestamp: {msg}"

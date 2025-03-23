@@ -8,9 +8,9 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKe
 from bson import ObjectId
 
 from app.config import labels
-from app.database.conference_db_operations import add_conference_to_db, conference_exists_by_link
-from app.database.tag_db_operations import get_tag_by_id
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.conference_db_operations import add_conference_to_db, conference_exists_by_link
+from app.database.db_operations.tag_db_operations import get_tag_by_id
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
     inline_active_tag_list,
     inline_single_cancel_button,

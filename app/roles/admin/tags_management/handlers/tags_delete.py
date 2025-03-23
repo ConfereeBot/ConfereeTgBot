@@ -2,8 +2,8 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from app.database.tag_db_operations import archive_tag_in_db, get_tag_by_id, delete_tag_from_db
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.tag_db_operations import archive_tag_in_db, get_tag_by_id, delete_tag_from_db
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import main_actions_keyboard, tag_deletion_confirmation_keyboard, inline_archived_tag_actions
 from app.roles.admin.admin import admin  # Импортируем роутер admin
 from app.roles.admin.tags_management.handlers.tags_read import TagManagementStates, manage_tags

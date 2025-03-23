@@ -10,7 +10,7 @@ from aiogram.types import (
 
 from app.config import labels
 from app.config.config import OWNERS
-from app.database.user_db_operations import (
+from app.database.db_operations.user_db_operations import (
     get_user_by_telegram_tag, get_user_by_telegram_id, add_or_update_user_to_admin, get_user_by_id,
     demote_admin_to_user,
 )

@@ -2,7 +2,7 @@ from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
 
-from app.database.conference_db_operations import get_conferences_by_tag, delete_conference_by_id  # Импортируем
+from app.database.db_operations.conference_db_operations import get_conferences_by_tag, delete_conference_by_id  # Импортируем
 from app.database.database import db
 from app.database.models.tag_DBO import Tag
 from app.utils.logger import logger

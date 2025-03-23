@@ -6,7 +6,7 @@ from aiogram.types import FSInputFile, Message
 
 from app.config import messages as msg
 from app.config.roles import Role
-from app.database.user_db_operations import handle_user_on_start
+from app.database.db_operations.user_db_operations import handle_user_on_start
 from app.keyboards import main_actions_keyboard
 from app.utils.logger import logger
 

@@ -35,7 +35,7 @@ async def create_recording_by_conference_link(conference_link: str, recording_li
     Returns:
         tuple[bool, str, Optional[ObjectId]]: Успех, сообщение, ID созданной записи (или None).
     """
-    from app.database.conference_db_operations import get_conference_by_link
+    from app.database.db_operations.conference_db_operations import get_conference_by_link
 
     # Ищем конференцию по ссылке
     conference = await get_conference_by_link(conference_link)

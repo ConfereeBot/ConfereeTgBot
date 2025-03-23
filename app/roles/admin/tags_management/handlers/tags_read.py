@@ -4,11 +4,11 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import CallbackQuery, Message
 
 from app.config import labels
-from app.database.tag_db_operations import (
+from app.database.db_operations.tag_db_operations import (
     get_tag_by_id,
     unarchive_tag_in_db,
 )
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
     inline_active_tag_list,
     inline_archived_tag_actions,

@@ -6,7 +6,7 @@ from pymongo.errors import DuplicateKeyError
 
 from app.database.database import db
 from app.database.models.conference_DBO import Conference
-from app.database.recording_db_operations import delete_recording_from_db
+from app.database.db_operations.recording_db_operations import delete_recording_from_db
 from app.utils.logger import logger
 
 
@@ -34,7 +34,7 @@ async def update_conference_timestamp(conference_id: ObjectId, timestamp: int | 
         # Обновляем timestamp (может быть None)
         result = await conferences_collection.update_one(
             {"_id": conference_id},
-            {"$set": {"timestamp": timestamp}}
+            {"$set": {"next_meeting_timestamp": timestamp}}
         )
         if result.modified_count == 0:
             logger.info(f"Timestamp for conference '{conference_id}' was already '{timestamp}' or no changes applied")
@@ -71,7 +71,7 @@ async def add_conference_to_db(
     conference = {
         "link": meet_link,
         "tag_id": tag_id,
-        "timestamp": timestamp,
+        "next_meeting_timestamp": timestamp,
         "timezone": timezone,
         "periodicity": periodicity,
         "recordings": [],
