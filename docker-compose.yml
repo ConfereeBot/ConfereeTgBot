@@ -6,9 +6,9 @@ services:
     depends_on:
       - mongodb
     env_file:
-      - .env
+      - ~/.env
     volumes:
-      - ./logs:/app/logs
+      - ~/conferee_logs:/app/logs
     restart: unless-stopped
     labels:
       - group=confereebot

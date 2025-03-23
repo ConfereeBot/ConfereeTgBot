@@ -1,0 +1,17 @@
+name: Deploy prod-runner
+on:
+    push:
+        branches:
+            - prod
+jobs:
+    deploy:
+        runs-on: [self-hosted]
+        steps:
+            - name: Checkout repository
+              uses: actions/checkout@v4
+            - name: Build docker compose
+              run: docker compose build
+            - name: Up docker compose
+              run: docker compose up -d
+            - name: Clear unused images
+              run: docker image prune -f
