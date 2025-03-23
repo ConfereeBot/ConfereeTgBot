@@ -10,18 +10,16 @@ from aiogram.types import (
 
 from app.config import labels
 from app.config.config import OWNERS
-from app.database.user_db_operations import (
-    add_or_update_user_to_admin,
+from app.database.db_operations.user_db_operations import (
+    get_user_by_telegram_tag, get_user_by_telegram_id, add_or_update_user_to_admin, get_user_by_id,
     demote_admin_to_user,
-    get_user_by_id,
-    get_user_by_telegram_tag,
 )
 from app.keyboards import (
     inline_admin_list,
     inline_single_cancel_button,
     main_actions_keyboard,
 )
-from app.roles.owner.owner import owner  # Импортируем роутер owner
+from app.roles.owner.owner import owner
 from app.roles.user.callbacks_enum import Callbacks
 from app.utils.logger import logger
 
@@ -40,21 +38,6 @@ def is_valid_telegram_username(username: str) -> bool:
     )
 
 
-@owner.message(F.text == labels.MANAGE_ADMINS)
-async def manage_admins(message: Message):
-    logger.info("manage_admins_call")
-    telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
-    user = await get_user_by_telegram_tag(telegram_tag)
-    if not user:
-        return
-    await message.answer(
-        text="Выберите админа или создайте нового:",
-        reply_markup=await inline_admin_list(
-            on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback
-        ),
-    )
-
-
 async def on_add_admin_clicked(callback: CallbackQuery, state: FSMContext):
     text = "Введите Telegram-тег нового админа в формате '@username':"
     reply_markup = await inline_single_cancel_button(Callbacks.cancel_primary_action_callback)
@@ -66,6 +49,21 @@ async def on_add_admin_clicked(callback: CallbackQuery, state: FSMContext):
 @owner.callback_query(F.data == Callbacks.add_admin_callback)
 async def handle_add_admin_callback(callback: CallbackQuery, state: FSMContext):
     await on_add_admin_clicked(callback, state)
+
+
+@owner.message(F.text == labels.MANAGE_ADMINS)
+async def manage_admins(message: Message):
+    logger.info("manage_admins_call")
+    telegram_id = message.from_user.id
+    user = await get_user_by_telegram_id(telegram_id)
+    if not user:
+        return
+    await message.answer(
+        text="Выберите админа или создайте нового:",
+        reply_markup=await inline_admin_list(
+            on_cancel_clicked_callback=Callbacks.cancel_primary_action_callback
+        ),
+    )
 
 
 @owner.message(AdminManagementStates.waiting_for_admin_username)
@@ -88,8 +86,8 @@ async def process_admin_username(message: Message, state: FSMContext):
         )
         return
     success, response = await add_or_update_user_to_admin(username)
-    telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
-    user = await get_user_by_telegram_tag(telegram_tag)
+    telegram_id = message.from_user.id
+    user = await get_user_by_telegram_id(telegram_id)
     if not user:
         return
     if success:
@@ -105,7 +103,7 @@ async def process_admin_username(message: Message, state: FSMContext):
     await message.bot.delete_message(chat_id=message.chat.id, message_id=message.message_id - 1)
 
 
-@owner.callback_query(F.data.startswith("admin_clicked"))
+@owner.callback_query(F.data.startswith(Callbacks.on_admin_clicked))
 async def on_admin_clicked(callback: CallbackQuery):
     try:
         user_id = callback.data.split(":")[1]
@@ -118,7 +116,8 @@ async def on_admin_clicked(callback: CallbackQuery):
         print(f"Ошибка: админ не найден с id {user_id}!")
         return
     text = (
-        f"Username админа: {user.telegram_tag}\n"
+        f"Telegram ID админа: {user.telegram_id}\n"
+        f"Username админа: {user.telegram_tag}\n"  # Показываем оба поля
         "Админ имеет права на управление тегами (их добавление, изменение, архивацию и удаление)."
     )
     reply_markup = InlineKeyboardMarkup(

@@ -24,6 +24,40 @@ async def add_recording_to_db(meeting_id: ObjectId, link: str) -> tuple[bool, st
         return False, f"Ошибка: {e}", None
 
 
+async def create_recording_by_conference_link(conference_link: str, recording_link: str) -> tuple[bool, str, Optional[ObjectId], Optional[Recording]]:
+    """
+    Создаёт новую запись в базе данных, привязанную к конференции по её ссылке.
+
+    Args:
+        conference_link (str): Ссылка на конференцию (Google Meet).
+        recording_link (str): Ссылка на запись.
+
+    Returns:
+        tuple[bool, str, Optional[ObjectId]]: Успех, сообщение, ID созданной записи (или None).
+    """
+    from app.database.db_operations.conference_db_operations import get_conference_by_link
+
+    # Ищем конференцию по ссылке
+    conference = await get_conference_by_link(conference_link)
+    if not conference:
+        logger.warning(f"Конференция с ссылкой '{conference_link}' не найдена для создания записи")
+        return False, f"Конференция с ссылкой '{conference_link}' не найдена!", None, None
+
+    # Создаём запись с conference_id
+    recording = Recording(conference_id=conference.id, link=recording_link)
+    recordings_collection: AgnosticCollection = db.db["recordings"]
+    try:
+        await recordings_collection.insert_one(recording.model_dump(by_alias=True))
+        logger.info(f"Запись с ссылкой '{recording_link}' добавлена для конференции '{conference_link}' с id: {recording.id}")
+        return True, f"Запись с ссылкой '{recording_link}' успешно добавлена!", recording.id, recording
+    except DuplicateKeyError:
+        logger.warning(f"Запись с ссылкой '{recording_link}' уже существует")
+        return False, f"Запись с ссылкой '{recording_link}' уже существует!", None, None
+    except Exception as e:
+        logger.error(f"Ошибка при добавлении записи '{recording_link}' для конференции '{conference_link}': {e}")
+        return False, f"Ошибка: {e}", None, None
+
+
 async def get_recording_by_id(recording_id: str) -> Optional[Recording]:
     """Получает запись по её ID."""
     recordings_collection: AgnosticCollection = db.db["recordings"]

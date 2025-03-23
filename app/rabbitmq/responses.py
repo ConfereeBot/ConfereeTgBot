@@ -11,9 +11,10 @@ class Res(StrEnum):
 class Req(StrEnum):
     SCREENSHOT = "screenshot"
     TIME = "time"
+    STOP_RECORD = "stop"
 
 
-def prepare(res: Res, body, user_id=-1, filepath="") -> bytes:
+def prepare(res: Req, body, user_id=-1, filepath="") -> bytes:
     return str(
         {
             "type": res.value,

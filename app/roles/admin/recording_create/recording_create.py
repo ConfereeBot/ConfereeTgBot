@@ -1,4 +1,5 @@
 from datetime import datetime
+from datetime import timezone as datetime_timezone
 
 from aiogram import F
 from aiogram.fsm.context import FSMContext
@@ -7,16 +8,17 @@ from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKe
 from bson import ObjectId
 
 from app.config import labels
-from app.database.conference_db_operations import add_conference_to_db, conference_exists_by_link
-from app.database.tag_db_operations import get_tag_by_id
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.conference_db_operations import add_conference_to_db, conference_exists_by_link
+from app.database.db_operations.tag_db_operations import get_tag_by_id
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
     inline_active_tag_list,
     inline_single_cancel_button,
     main_actions_keyboard,
 )
+from app.rabbitmq.func import schedule_task
+from app.roles.admin.admin import admin
 from app.roles.user.callbacks_enum import Callbacks
-from app.roles.user.user_cmds import user
 from app.utils.logger import logger
 
 
@@ -29,7 +31,7 @@ class RecordingCreateStates(StatesGroup):
     waiting_for_periodicity = State()
 
 
-@user.message(F.text == labels.RECORD)
+@admin.message(F.text == labels.RECORD)
 async def start_recording(message: Message, state: FSMContext):
     logger.info("start_recording_call")
     await message.answer(
@@ -44,7 +46,7 @@ async def start_recording(message: Message, state: FSMContext):
     await state.set_state(RecordingCreateStates.waiting_for_tag)
 
 
-@user.callback_query(F.data.startswith(Callbacks.tag_clicked_in_recording_mode_callback))
+@admin.callback_query(F.data.startswith(Callbacks.tag_clicked_in_recording_mode_callback))
 async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
     try:
         tag_id = callback.data.split(":")[1]
@@ -57,19 +59,19 @@ async def process_tag_for_recording(callback: CallbackQuery, state: FSMContext):
         await callback.answer("Ошибка: тег не найден в базе данных!", show_alert=True)
         return
 
-    print(f"Got tag {tag} in tag processing for conf adding. Found by id {tag_id}")
+    logger.info(f"Выбран тег {tag.name} с id {tag_id} для создания конференции")
     await state.update_data(tag_id=tag_id)
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+            [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_meet_link)
     await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.back_to_tag_in_create_conference_mode,
+@admin.callback_query(F.data == Callbacks.back_to_tag_in_create_conference_mode,
                       RecordingCreateStates.waiting_for_meet_link)
 async def back_to_tag_from_link(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
@@ -85,7 +87,7 @@ async def back_to_tag_from_link(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_meet_link)
+@admin.message(RecordingCreateStates.waiting_for_meet_link)
 async def process_meet_link_for_recording(message: Message, state: FSMContext):
     meet_link = message.text.strip()
     state_data = await state.get_data()
@@ -114,7 +116,7 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
         await message.answer(
             text=f"Конференция с ссылкой '{meet_link}' уже существует! Проверьте корректность ссылки и попробуйте снова:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+                [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
             ]),
         )
         return
@@ -123,25 +125,25 @@ async def process_meet_link_for_recording(message: Message, state: FSMContext):
     await message.answer(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
 
 
-@user.callback_query(F.data == "back_to_link", RecordingCreateStates.waiting_for_timezone)
+@admin.callback_query(F.data == "back_to_link", RecordingCreateStates.waiting_for_timezone)
 async def back_to_link_from_timezone(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Введите ссылку на Google Meet конференцию:",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
+            [InlineKeyboardButton(text="↩ Назад", callback_data=Callbacks.back_to_tag_in_create_conference_mode)]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_meet_link)
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_timezone)
+@admin.message(RecordingCreateStates.waiting_for_timezone)
 async def process_timezone(message: Message, state: FSMContext):
     timezone_str = message.text.strip()
     telegram_tag = f"@{message.from_user.username}" if message.from_user.username else f"@{message.from_user.id}"
@@ -156,34 +158,34 @@ async def process_timezone(message: Message, state: FSMContext):
         await message.answer(
             text="Ошибка: неверный формат тайм-зоны! Введите число от -12 до +14 (например, +3 или -5). Повторите ввод:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
             ]),
         )
         return
 
     await state.update_data(timezone=timezone)
     await message.answer(
-        text="Введите дату начала конференции в формате 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ:СЕКУНДЫ' (например, 15.03.2025 14:30:00):",
+        text="Введите дату и время начала конференции в формате 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_start_date)
 
 
-@user.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_start_date)
+@admin.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_start_date)
 async def back_to_timezone_from_date(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
     await callback.answer("")
 
 
-@user.message(RecordingCreateStates.waiting_for_start_date)
+@admin.message(RecordingCreateStates.waiting_for_start_date)
 async def process_start_date(message: Message, state: FSMContext):
     start_date_str = message.text.strip()
     state_data = await state.get_data()
@@ -194,24 +196,27 @@ async def process_start_date(message: Message, state: FSMContext):
         return
 
     try:
-        start_date = datetime.strptime(start_date_str, "%d.%m.%Y %H:%M:%S")
-        timestamp = int(start_date.timestamp()) - (timezone * 3600)
-        current_time = int(datetime.now().timestamp())
+        # Парсим дату и время без секунд, добавляем ':00' автоматически
+        start_date = datetime.strptime(start_date_str, "%d.%m.%Y %H:%M")
+        # Устанавливаем секунды в 00
+        start_date = start_date.replace(second=0)
+        timestamp = int(start_date.timestamp()) - (timezone * 3600)  # Корректируем на тайм-зону
+        current_time = int(datetime.now(datetime_timezone.utc).timestamp())
 
         if timestamp < current_time:
             await message.answer(
                 text="Ошибка: указанная дата и время находятся в прошлом! Введите будущую дату:",
                 reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+                    [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
                 ]),
             )
             return
 
     except ValueError:
         await message.answer(
-            text="Ошибка: неверный формат даты! Используйте 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ:СЕКУНДЫ' (например, 15.03.2025 14:30:00). Повторите ввод:",
+            text="Ошибка: неверный формат даты! Используйте 'ДЕНЬ.МЕСЯЦ.ГОД ЧАСЫ:МИНУТЫ' (например, 15.03.2025 14:30). Повторите ввод:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
             ]),
         )
         return
@@ -222,25 +227,25 @@ async def process_start_date(message: Message, state: FSMContext):
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Да", callback_data="recurrence_yes"),
              InlineKeyboardButton(text="Нет", callback_data="recurrence_no")],
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_recurrence)
 
 
-@user.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_recurrence)
+@admin.callback_query(F.data == "back_to_timezone", RecordingCreateStates.waiting_for_recurrence)
 async def back_to_timezone_from_recurrence(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Укажите тайм-зону относительно UTC (например, +3 или -5):",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_link")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_link")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_timezone)
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith("recurrence_"), RecordingCreateStates.waiting_for_recurrence)
+@admin.callback_query(F.data.startswith("recurrence_"), RecordingCreateStates.waiting_for_recurrence)
 async def process_recurrence(callback: CallbackQuery, state: FSMContext):
     recurrence = callback.data == "recurrence_yes"
     await state.update_data(recurrence=recurrence)
@@ -251,7 +256,7 @@ async def process_recurrence(callback: CallbackQuery, state: FSMContext):
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="1 неделя", callback_data="period_1"),
                  InlineKeyboardButton(text="2 недели", callback_data="period_2")],
-                [InlineKeyboardButton(text="Назад", callback_data="back_to_date")]
+                [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_date")]
             ]),
         )
         await state.set_state(RecordingCreateStates.waiting_for_periodicity)
@@ -260,21 +265,21 @@ async def process_recurrence(callback: CallbackQuery, state: FSMContext):
     await callback.answer("")
 
 
-@user.callback_query(F.data == "back_to_date", RecordingCreateStates.waiting_for_periodicity)
+@admin.callback_query(F.data == "back_to_date", RecordingCreateStates.waiting_for_periodicity)
 async def back_to_date_from_periodicity(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(
         text="Это регулярная встреча?",
         reply_markup=InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="Да", callback_data="recurrence_yes"),
              InlineKeyboardButton(text="Нет", callback_data="recurrence_no")],
-            [InlineKeyboardButton(text="Назад", callback_data="back_to_timezone")]
+            [InlineKeyboardButton(text="↩ Назад", callback_data="back_to_timezone")]
         ]),
     )
     await state.set_state(RecordingCreateStates.waiting_for_recurrence)
     await callback.answer("")
 
 
-@user.callback_query(F.data.startswith("period_"), RecordingCreateStates.waiting_for_periodicity)
+@admin.callback_query(F.data.startswith("period_"), RecordingCreateStates.waiting_for_periodicity)
 async def process_periodicity(callback: CallbackQuery, state: FSMContext):
     periodicity = int(callback.data.split("_")[1])
     await state.update_data(periodicity=periodicity)
@@ -295,7 +300,8 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
     if not user:
         return
 
-    print("Add conf with values", tag_id, meet_link, timestamp, timezone, recurrence, periodicity)
+    logger.info(
+        f"Добавление конференции: tag_id={tag_id}, link={meet_link}, timestamp={timestamp}, timezone={timezone}, periodicity={periodicity if recurrence else None}")
 
     success, response = await add_conference_to_db(
         meet_link=meet_link,
@@ -304,8 +310,11 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
         timezone=timezone,
         periodicity=periodicity if recurrence else None
     )
-
     if success:
+        meet_start_timestamp = timestamp
+        current_time = int(datetime.now(datetime_timezone.utc).timestamp())
+        logger.info(f"Send {meet_start_timestamp - current_time}s into broker ({meet_start_timestamp} - {current_time})")
+        await schedule_task(meet_link, (meet_start_timestamp - current_time))
         await callback.message.delete()
         await callback.message.answer(
             text=response,
@@ -317,9 +326,10 @@ async def finish_recording(callback: CallbackQuery, state: FSMContext):
             reply_markup=await inline_single_cancel_button(Callbacks.cancel_primary_action_callback),
         )
     await state.clear()
+    await callback.answer("")
 
 
-@user.callback_query(F.data == Callbacks.cancel_primary_action_callback)
+@admin.callback_query(F.data == Callbacks.cancel_primary_action_callback)
 async def on_cancel_primary_callback(callback: CallbackQuery, state: FSMContext):
     telegram_tag = f"@{callback.from_user.username}" if callback.from_user.username else f"@{callback.from_user.id}"
     user = await get_user_by_telegram_tag(telegram_tag)

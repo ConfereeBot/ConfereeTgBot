@@ -3,8 +3,8 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import Message, CallbackQuery
 
-from app.database.tag_db_operations import update_tag_in_db
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.tag_db_operations import update_tag_in_db
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import (
     inline_single_cancel_button,
     main_actions_keyboard,

@@ -2,7 +2,7 @@ from aiogram.filters import Filter
 from aiogram.types import Message, CallbackQuery
 
 from app.config.roles import Role
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.utils.logger import logger
 
 

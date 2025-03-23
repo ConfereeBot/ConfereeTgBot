@@ -2,7 +2,7 @@ from aiogram import F
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery
 
-from app.database.user_db_operations import get_user_by_telegram_tag
+from app.database.db_operations.user_db_operations import get_user_by_telegram_tag
 from app.keyboards import main_actions_keyboard
 from app.roles.user.callbacks_enum import Callbacks
 from app.roles.user.user_cmds import user
