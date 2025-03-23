@@ -1,13 +1,22 @@
 # ConfereeTgBot
 
 ## Table of Contents
-[TOC]
+- [ConfereeTgBot](#confereetgbot)
+  - [Table of Contents](#table-of-contents)
+  - [Overview](#overview)
+    - [Features](#features)
+  - [Demonstration](#demonstration)
+  - [Roles and Permissions](#roles-and-permissions)
+  - [Architecture](#architecture)
+    - [MongoDB schema](#mongodb-schema)
+  - [Debug project](#debug-project)
+  - [Deploy project](#deploy-project)
 
 ## Overview
 This project is a Telegram bot for managing and recording Google Meet conferences through the [GMeetBot service](https://github.com/ConfereeBot/GMeetBot).
 The bot allows users to plan, tag, and search conference recordings, manage access roles, and schedule regular recordings.
 
-## Features
+### Features
 - **Conference Management**: Schedule recordings of Google Meet conferences.
 - **Tagging**: Manage tags to recordings for easy search and categorization.
 - **Search**: Search recordings by tags or conference links.
