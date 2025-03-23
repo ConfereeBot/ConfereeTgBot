@@ -5,7 +5,7 @@ on:
             - prod
 jobs:
     deploy:
-        runs-on: [self-hosted]
+        runs-on: [self-hosted, ab-host]
         steps:
             - name: Checkout repository
               uses: actions/checkout@v4
