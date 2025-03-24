@@ -130,8 +130,8 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-env/conferee_tg_bot.env
-env/*
+.conferee/config/*
+env/
 .venv
 venv/
 ENV/
