@@ -31,6 +31,7 @@ async def get_connection() -> AbstractConnection:
     return connection
 
 
+# await mq.func.schedule_task("https://meet.google.com/qwe-qwe-qwe", 0)   schedule task in n secs
 async def schedule_task(link: str, in_secs: int):
     print(f"Scheduled new task ({link}) in {in_secs} sec")
     connection = await get_connection()
@@ -43,6 +44,8 @@ async def schedule_task(link: str, in_secs: int):
     )
 
 
+# await mq.func.manage_active_task(mq.responses.Req.TIME, user_id: int)       request for current recording time
+# await mq.func.manage_active_task(mq.responses.Req.SCREENSHOT, user_id: int) request for screenshot
 async def manage_active_task(command: res.Req, user_id: int):
     print(f"Manage active task: <{command}>")
     connection = await get_connection()
@@ -99,10 +102,6 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
     print(f"Received response: {body}")
     try:
         msg: dict = json.loads(body)
-    except Exception as e:
-        logger.warning(f"Exception while loading json {body}, message: {e}")
-        return
-    try:
         response_type = msg.get("type")
         body = msg.get("body")
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
@@ -222,6 +221,7 @@ async def start_listening():
     logger.info("Stopped listening to queues.")
 
 
+# await mq.func.decline_task("https://meet.google.com/qwe-qwet-qwe") delete task from schedule
 async def decline_task(link: str):
     connection = await get_connection()
     channel = await connection.channel()

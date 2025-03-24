@@ -94,7 +94,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
         for i, conference in enumerate(conferences, 1):
             if conference.next_meeting_timestamp is not None:
                 timestamp_str = (datetime
-                                 .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                                 .fromtimestamp(conference.next_meeting_timestamp)
                                  .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
                 print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
                 if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
@@ -108,7 +108,7 @@ async def process_tag_selection(callback: CallbackQuery, state: FSMContext):
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
             if conference.next_meeting_timestamp is not None:
                 short_date = (datetime
-                              .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                              .fromtimestamp(conference.next_meeting_timestamp)
                               .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
@@ -163,7 +163,7 @@ async def process_meet_link(message: Message, state: FSMContext):
             tag_name = "Неизвестный тег"
         if conference.next_meeting_timestamp is not None:
             timestamp_str = (datetime
-                             .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                             .fromtimestamp(conference.next_meeting_timestamp)
                              .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
             print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
             if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
@@ -268,7 +268,7 @@ async def handle_conference_button(callback: CallbackQuery, state: FSMContext):
         tag_name = "Неизвестный тег"
     if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
         print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
         if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
@@ -492,7 +492,7 @@ async def back_to_conference(callback: CallbackQuery, state: FSMContext):
         tag_name = "Неизвестный тег"
     if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
         print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
         if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
@@ -581,7 +581,7 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
         for i, conference in enumerate(conferences, 1):
             if conference.next_meeting_timestamp is not None:
                 timestamp_str = (datetime
-                                 .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                                 .fromtimestamp(conference.next_meeting_timestamp)
                                  .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
                 print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
                 if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):
@@ -595,7 +595,7 @@ async def handle_back_to_tag_in_search_mode(callback: CallbackQuery, state: FSMC
             clean_link = conference.link.replace("https://", "").replace("http://", "").replace("www.", "")
             if conference.next_meeting_timestamp is not None:
                 short_date = (datetime
-                              .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                              .fromtimestamp(conference.next_meeting_timestamp)
                               .strftime('%d.%m.%Y %H:%M'))
             else:
                 short_date = "не регулярная"
@@ -699,7 +699,7 @@ async def cancel_delete_conference(callback: CallbackQuery, state: FSMContext):
         tag_name = "Неизвестный тег"
     if conference.next_meeting_timestamp is not None:
         timestamp_str = (datetime
-                         .fromtimestamp(conference.next_meeting_timestamp + conference.timezone * 3600)
+                         .fromtimestamp(conference.next_meeting_timestamp)
                          .strftime(f'%d.%m.%Y %H:%M:%S UTC+{conference.timezone}'))
         print(conference.next_meeting_timestamp, int(datetime.now(datetime_timezone.utc).timestamp()))
         if conference.next_meeting_timestamp <= int(datetime.now(datetime_timezone.utc).timestamp()):

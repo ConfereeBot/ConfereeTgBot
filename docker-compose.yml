@@ -6,7 +6,7 @@ services:
     depends_on:
       - mongodb
     env_file:
-      - ~/.env.gmeet
+      - conferee_tg_bot.env
     volumes:
       - ~/conferee_logs:/app/logs
     restart: unless-stopped
@@ -19,10 +19,6 @@ services:
     image: mongo:latest
     ports:
       - "27017:27017"
-    environment:
-      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USERNAME}
-      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
-      - MONGO_INITDB_DATABASE=${MONGODB_DATABASE}
     volumes:
       - mongodb_data:/data/db
     restart: unless-stopped
