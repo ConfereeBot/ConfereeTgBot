@@ -200,7 +200,7 @@ async def process_start_date(message: Message, state: FSMContext):
         start_date = datetime.strptime(start_date_str, "%d.%m.%Y %H:%M")
         # Устанавливаем секунды в 00
         start_date = start_date.replace(second=0)
-        timestamp = int(start_date.timestamp()) # - (timezone * 3600)  # Корректируем на тайм-зону TODO не надо, но почему
+        timestamp = int(start_date.timestamp())
         current_time = int(datetime.now(datetime_timezone.utc).timestamp())
 
         print("ERROR, not late", timestamp, current_time)
