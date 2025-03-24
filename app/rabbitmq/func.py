@@ -99,10 +99,6 @@ async def handle_responses(message: aiormq.abc.DeliveredMessage):
     print(f"Received response: {body}")
     try:
         msg: dict = json.loads(body)
-    except Exception as e:
-        logger.warning(f"Exception while loading json {body}, message: {e}")
-        return
-    try:
         response_type = msg.get("type")
         body = msg.get("body")
         user_id = msg.get("user_id")  # USE USER_ID, only for SCREENSHOT and TIME
