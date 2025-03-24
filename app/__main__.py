@@ -1,7 +1,7 @@
 import asyncio
-from tomllib import load
 
 from aiogram import Dispatcher
+from tomllib import load
 
 import app.rabbitmq as mq
 from app.bot import bot

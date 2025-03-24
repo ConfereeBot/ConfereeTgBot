@@ -2,7 +2,10 @@ from bson import ObjectId
 from motor.core import AgnosticCollection
 from pymongo.errors import DuplicateKeyError
 
-from app.database.db_operations.conference_db_operations import get_conferences_by_tag, delete_conference_by_id  # Импортируем
+from app.database.db_operations.conference_db_operations import (
+    get_conferences_by_tag,
+    delete_conference_by_id,
+)  # Импортируем
 from app.database.database import db
 from app.database.models.tag_DBO import Tag
 from app.utils.logger import logger
@@ -22,8 +25,7 @@ async def add_tag_to_db(name: str) -> tuple[bool, str]:
         return True, f"Тег '{name}' успешно добавлен!"
     except DuplicateKeyError:
         logger.warning(f"Тег '{name}' уже существует")
-        return False, (f"Тег '{name}' уже существует, \n"
-                       f"выберите другое имя для тега.")
+        return False, (f"Тег '{name}' уже существует, \nвыберите другое имя для тега.")
     except Exception as e:
         logger.error(f"Ошибка при добавлении тега '{name}': {e}")
         return False, f"Ошибка: {e}"
@@ -37,12 +39,11 @@ async def update_tag_in_db(tag_id: str, new_name: str) -> tuple[bool, str]:
     tags_collection: AgnosticCollection = db.db["tags"]
     try:
         result = await tags_collection.update_one(
-            {"_id": ObjectId(tag_id)},
-            {"$set": {"name": new_name}}
+            {"_id": ObjectId(tag_id)}, {"$set": {"name": new_name}}
         )
         if result.matched_count == 0:
             logger.warning(f"Тег с id '{tag_id}' не найден")
-            return False, f"Тег не найден!"
+            return False, "Тег не найден!"
         if result.modified_count > 0:
             logger.info(f"Тег с id '{tag_id}' обновлён: новое имя '{new_name}'")
             return True, f"Тег успешно обновлён на '{new_name}'!"
@@ -72,7 +73,9 @@ async def delete_tag_from_db(tag_id: str) -> tuple[bool, str]:
         for conference in conferences:
             success, msg = await delete_conference_by_id(str(conference.id))
             if not success:
-                logger.warning(f"Failed to delete conference {conference.id} for tag {tag_id}: {msg}")
+                logger.warning(
+                    f"Failed to delete conference {conference.id} for tag {tag_id}: {msg}"
+                )
 
         result = await tags_collection.delete_one({"_id": ObjectId(tag_id)})
         if result.deleted_count == 0:
@@ -94,17 +97,16 @@ async def unarchive_tag_in_db(tag_id: str) -> tuple[bool, str]:
     tags_collection: AgnosticCollection = db.db["tags"]
     try:
         result = await tags_collection.update_one(
-            {"_id": ObjectId(tag_id)},
-            {"$set": {"is_archived": False}}
+            {"_id": ObjectId(tag_id)}, {"$set": {"is_archived": False}}
         )
         if result.matched_count == 0:
             logger.warning(f"Тег с id '{tag_id}' не найден")
             return False, f"Тег с id '{tag_id}' не найден!"
         if result.modified_count > 0:
             logger.info(f"Тег с id '{tag_id}' успешно разархивирован")
-            return True, f"Тег успешно разархивирован!"
+            return True, "Тег успешно разархивирован!"
         logger.info(f"Тег с id '{tag_id}' уже был неархивированным")
-        return True, f"Тег уже был неархивированным!"
+        return True, "Тег уже был неархивированным!"
     except Exception as e:
         logger.error(f"Ошибка при разархивировании тега с id '{tag_id}': {e}")
         return False, f"Ошибка: {e}"
@@ -118,17 +120,16 @@ async def archive_tag_in_db(tag_id: str) -> tuple[bool, str]:
     tags_collection: AgnosticCollection = db.db["tags"]
     try:
         result = await tags_collection.update_one(
-            {"_id": ObjectId(tag_id)},
-            {"$set": {"is_archived": True}}
+            {"_id": ObjectId(tag_id)}, {"$set": {"is_archived": True}}
         )
         if result.matched_count == 0:
             logger.warning(f"Тег с id '{tag_id}' не найден")
             return False, f"Тег с id '{tag_id}' не найден!"
         if result.modified_count > 0:
             logger.info(f"Тег с id '{tag_id}' успешно архивирован")
-            return True, f"Тег успешно архивирован!"
+            return True, "Тег успешно архивирован!"
         logger.info(f"Тег с id '{tag_id}' уже был архивирован")
-        return True, f"Тег уже был архивирован!"
+        return True, "Тег уже был архивирован!"
     except Exception as e:
         logger.error(f"Ошибка при архивировании тега с id '{tag_id}': {e}")
         return False, f"Ошибка: {e}"
