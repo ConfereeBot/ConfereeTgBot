@@ -131,6 +131,7 @@ celerybeat.pid
 
 # Environments
 conferee_tg_bot.env
+.env
 .venv
 env/
 venv/
