@@ -6,7 +6,7 @@ services:
     depends_on:
       - mongodb
     env_file:
-      - .conferee/config/conferee_tg_bot.env
+      - ~/.conferee/config
     volumes:
       - ~/conferee_logs:/app/logs
     restart: unless-stopped
